@@ -487,9 +487,9 @@ cargo flamegraph --bin dgdm-server
 ```bibtex
 @software{graph_diffusion_edge_serving,
   title = {Ultra-Fast Graph Diffusion on Edge TPU v5},
-  author = {Your Name},
+  author = {Daniel Schmidt},
   year = {2025},
-  url = {https://github.com/yourusername/graph-diffusion-edge-serving}
+  url = {https://github.com/danieleschmidt/graph-diffusion-edge-serving}
 }
 ```
 
