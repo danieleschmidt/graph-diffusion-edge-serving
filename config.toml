@@ -1,0 +1,53 @@
+# DGDM Server Configuration
+
+[server]
+bind_address = "0.0.0.0:8080"
+enable_cors = true
+enable_compression = true
+max_request_size_mb = 100
+request_timeout_seconds = 30
+
+[graph]
+max_nodes = 1000000
+max_edges = 10000000
+feature_dim = 128
+diffusion_steps = 5
+batch_size = 32
+quantization = "fp32"
+enable_caching = true
+
+[processing]
+temperature = 0.1
+dropout_rate = 0.1
+use_attention = false
+normalize_features = true
+mixed_precision = false
+
+[tpu]
+device_path = "/dev/apex_0"
+model_path = "models/dgdm_quantized.tflite"
+power_limit_watts = 4.0
+temperature_limit_celsius = 85.0
+enable_profiling = false
+batch_size = 32
+quantization = "int8"
+
+[logging]
+level = "info"
+format = "compact"
+enable_json = false
+enable_tracing = true
+
+# Environment-specific overrides
+[environments.development]
+[environments.development.logging]
+level = "debug"
+enable_tracing = true
+
+[environments.production]
+[environments.production.server]
+request_timeout_seconds = 60
+
+[environments.production.logging]
+enable_json = true
+format = "json"

@@ -1,0 +1,84 @@
+# Docker build for DGDM Server with TPU support
+# This version includes TPU drivers and dependencies
+
+FROM rust:1.75-slim-bullseye AS builder
+
+# Install system dependencies for compilation including TPU support
+RUN apt-get update && apt-get install -y \
+    pkg-config \
+    libssl-dev \
+    libgomp1 \
+    ca-certificates \
+    curl \
+    gnupg \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create app directory
+WORKDIR /app
+
+# Copy dependency files first for better caching
+COPY Cargo.toml Cargo.lock ./
+
+# Create dummy main.rs to build dependencies
+RUN mkdir src && echo "fn main() {}" > src/main.rs
+
+# Build dependencies without TPU feature for faster builds
+RUN cargo build --release --no-default-features && rm -rf src
+
+# Copy source code
+COPY src ./src
+COPY benches ./benches
+
+# Build with TPU support (using CPU fallback for build)
+RUN cargo build --release --no-default-features --bin dgdm-server
+
+# Runtime stage with TPU support
+FROM debian:bullseye-slim
+
+# Install Google Coral Edge TPU runtime
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    libgomp1 \
+    libssl1.1 \
+    curl \
+    gnupg \
+    udev \
+    && echo "deb https://packages.cloud.google.com/apt coral-edgetpu-stable main" | tee /etc/apt/sources.list.d/coral-edgetpu.list \
+    && curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add - \
+    && apt-get update \
+    && apt-get install -y libedgetpu1-std python3-pycoral \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+# Create non-root user for security but with access to TPU devices
+RUN groupadd -r dgdm && useradd -r -g dgdm dgdm \
+    && usermod -a -G plugdev dgdm
+
+# Create app directory and set ownership
+WORKDIR /app
+RUN chown dgdm:dgdm /app
+
+# Copy binary from builder stage
+COPY --from=builder /app/target/release/dgdm-server /usr/local/bin/dgdm-server
+RUN chmod +x /usr/local/bin/dgdm-server
+
+# Copy configuration files and models
+COPY --chown=dgdm:dgdm config.toml* ./
+COPY --chown=dgdm:dgdm models/ ./models/
+
+# Create udev rules for TPU access
+RUN echo 'SUBSYSTEM=="usb", ATTRS{idVendor}=="1a6e", ATTRS{idProduct}=="089a", MODE="0664", GROUP="plugdev"' > /etc/udev/rules.d/99-coral.rules \
+    && echo 'SUBSYSTEM=="usb", ATTRS{idVendor}=="18d1", ATTRS{idProduct}=="9302", MODE="0664", GROUP="plugdev"' >> /etc/udev/rules.d/99-coral.rules
+
+# Switch to non-root user
+USER dgdm
+
+# Expose port
+EXPOSE 8080
+
+# Health check with TPU info
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost:8080/health || exit 1
+
+# Default command with TPU-specific settings
+CMD ["dgdm-server", "--bind", "0.0.0.0:8080", "--enable-tpu"]

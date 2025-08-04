@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>DGDM WASM Demo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        h1, h2 {
+            color: #333;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+        .results {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+            margin-top: 10px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .status.loading {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+        }
+        .status.success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .status.error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .graph-viz {
+            width: 100%;
+            height: 400px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 DGDM WASM Demo</h1>
+        <p>Ultra-Fast Dynamic Graph Diffusion Models running in your browser!</p>
+        
+        <div id="status" class="status loading">Loading WASM module...</div>
+        
+        <div id="info-section" style="display: none;">
+            <h2>📊 System Information</h2>
+            <div id="system-info" class="results"></div>
+        </div>
+    </div>
+
+    <div class="container" id="demo-section" style="display: none;">
+        <h2>🧪 Graph Processing Demo</h2>
+        
+        <div>
+            <label>Nodes: <input type="number" id="nodes" value="100" min="10" max="1000"></label>
+            <label>Edges: <input type="number" id="edges" value="200" min="10" max="2000"></label>
+            <label>Features: <input type="number" id="features" value="64" min="8" max="256"></label>
+        </div>
+        
+        <div style="margin: 15px 0;">
+            <button id="generate-btn">Generate Random Graph</button>
+            <button id="process-btn" disabled>Process Graph</button>
+            <button id="benchmark-btn">Run Benchmark</button>
+        </div>
+        
+        <div id="graph-info" class="results" style="display: none;"></div>
+        <div id="processing-results" class="results" style="display: none;"></div>
+    </div>
+
+    <div class="container" id="benchmark-section" style="display: none;">
+        <h2>⚡ Performance Benchmark</h2>
+        <div id="benchmark-results" class="results"></div>
+    </div>
+
+    <script type="module">
+        import init, { 
+            DGDMClient, 
+            create_dgdm_client, 
+            validate_graph,
+            get_wasm_features,
+            memory_info,
+            performance_now
+        } from './pkg/graph_diffusion_edge.js';
+
+        let client = null;
+        let currentGraph = null;
+
+        async function initWasm() {
+            try {
+                await init();
+                client = create_dgdm_client();
+                
+                document.getElementById('status').className = 'status success';
+                document.getElementById('status').textContent = '✅ WASM module loaded successfully!';
+                
+                // Show system info
+                const info = client.get_info();
+                const wasmFeatures = get_wasm_features();
+                const memInfo = memory_info();
+                
+                document.getElementById('system-info').innerHTML = `
+                    <strong>Package Info:</strong><br>
+                    ${JSON.stringify(info, null, 2)}<br><br>
+                    <strong>WASM Features:</strong><br>
+                    ${JSON.stringify(wasmFeatures, null, 2)}<br><br>
+                    <strong>Memory Info:</strong><br>
+                    ${JSON.stringify(memInfo, null, 2)}
+                `;
+                
+                document.getElementById('info-section').style.display = 'block';
+                document.getElementById('demo-section').style.display = 'block';
+                
+            } catch (err) {
+                document.getElementById('status').className = 'status error';
+                document.getElementById('status').textContent = `❌ Failed to load WASM: ${err.message}`;
+                console.error('WASM init failed:', err);
+            }
+        }
+
+        function generateGraph() {
+            const nodes = parseInt(document.getElementById('nodes').value);
+            const edges = parseInt(document.getElementById('edges').value);
+            const features = parseInt(document.getElementById('features').value);
+            
+            try {
+                currentGraph = client.create_random_graph(nodes, edges, features);
+                
+                const isValid = validate_graph(currentGraph);
+                
+                document.getElementById('graph-info').style.display = 'block';
+                document.getElementById('graph-info').innerHTML = `
+                    <strong>Generated Graph:</strong><br>
+                    Nodes: ${nodes}<br>
+                    Edges: ${edges}<br>
+                    Feature Dimension: ${features}<br>
+                    Valid: ${isValid ? '✅' : '❌'}<br>
+                    <details>
+                        <summary>Graph Data (click to expand)</summary>
+                        <pre>${JSON.stringify(currentGraph, null, 2)}</pre>
+                    </details>
+                `;
+                
+                document.getElementById('process-btn').disabled = false;
+                
+            } catch (err) {
+                document.getElementById('graph-info').innerHTML = `<span style="color: red;">Error: ${err.message}</span>`;
+                console.error('Graph generation failed:', err);
+            }
+        }
+
+        function processGraph() {
+            if (!currentGraph) return;
+            
+            document.getElementById('process-btn').disabled = true;
+            document.getElementById('processing-results').style.display = 'block';
+            document.getElementById('processing-results').innerHTML = 'Processing graph...';
+            
+            try {
+                const startTime = performance_now();
+                const result = client.process_graph(currentGraph);
+                const endTime = performance_now();
+                const totalTime = endTime - startTime;
+                
+                document.getElementById('processing-results').innerHTML = `
+                    <strong>Processing Results:</strong><br>
+                    Embeddings Shape: ${result.embeddings.length} × ${result.embeddings[0]?.length || 0}<br>
+                    Processing Time: ${result.processing_time_ms.toFixed(2)} ms<br>
+                    Total Time (JS + WASM): ${totalTime.toFixed(2)} ms<br>
+                    Iterations: ${result.num_iterations}<br>
+                    <details>
+                        <summary>Embedding Sample (first 5 nodes)</summary>
+                        <pre>${JSON.stringify(result.embeddings.slice(0, 5), null, 2)}</pre>
+                    </details>
+                `;
+                
+            } catch (err) {
+                document.getElementById('processing-results').innerHTML = `<span style="color: red;">Error: ${err.message}</span>`;
+                console.error('Graph processing failed:', err);
+            }
+            
+            document.getElementById('process-btn').disabled = false;
+        }
+
+        function runBenchmark() {
+            document.getElementById('benchmark-section').style.display = 'block';
+            document.getElementById('benchmark-results').innerHTML = 'Running benchmark...';
+            document.getElementById('benchmark-btn').disabled = true;
+            
+            // Run benchmark asynchronously to avoid blocking UI
+            setTimeout(() => {
+                try {
+                    const result = client.benchmark(20, 50); // 20 graphs with 50 nodes each
+                    
+                    document.getElementById('benchmark-results').innerHTML = `
+                        <strong>Benchmark Results:</strong><br>
+                        <pre>${JSON.stringify(result, null, 2)}</pre>
+                    `;
+                    
+                } catch (err) {
+                    document.getElementById('benchmark-results').innerHTML = `<span style="color: red;">Benchmark failed: ${err.message}</span>`;
+                    console.error('Benchmark failed:', err);
+                }
+                
+                document.getElementById('benchmark-btn').disabled = false;
+            }, 100);
+        }
+
+        // Event listeners
+        document.getElementById('generate-btn').addEventListener('click', generateGraph);
+        document.getElementById('process-btn').addEventListener('click', processGraph);
+        document.getElementById('benchmark-btn').addEventListener('click', runBenchmark);
+
+        // Initialize WASM on page load
+        initWasm();
+    </script>
+</body>
+</html>
