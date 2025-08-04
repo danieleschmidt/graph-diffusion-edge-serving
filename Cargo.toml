@@ -1,0 +1,122 @@
+[package]
+name = "graph-diffusion-edge-serving"
+version = "0.1.0"
+edition = "2021"
+authors = ["Terragon Labs <dev@terragonlabs.com>"]
+description = "Ultra-Fast Dynamic Graph Diffusion Models on Edge TPU v5"
+license = "MIT"
+repository = "https://github.com/danieleschmidt/graph-diffusion-edge-serving"
+keywords = ["graph", "diffusion", "edge-tpu", "machine-learning", "wasm"]
+categories = ["science", "wasm", "web-programming"]
+
+[lib]
+name = "graph_diffusion_edge"
+crate-type = ["cdylib", "rlib"]
+
+[[bin]]
+name = "dgdm-server"
+path = "src/bin/server.rs"
+
+[dependencies]
+# Core async runtime
+tokio = { version = "1.0", features = ["full"] }
+tokio-stream = { version = "0.1", features = ["sync"] }
+
+# Web framework and HTTP
+axum = "0.7"
+tower = "0.4"
+tower-http = { version = "0.5", features = ["cors", "compression-br", "compression-gzip", "trace"] }
+hyper = "1.0"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Graph processing
+petgraph = "0.6"
+ndarray = { version = "0.15", features = ["serde"] }
+rayon = "1.8"
+
+# Networking and WebSocket
+tokio-tungstenite = "0.21"
+futures-util = "0.3"
+
+# Error handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Logging and tracing
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+tracing-opentelemetry = "0.22"
+
+# Metrics and monitoring
+prometheus = "0.13"
+opentelemetry = "0.21"
+opentelemetry-jaeger = "0.20"
+
+# Configuration
+config = "0.14"
+clap = { version = "4.0", features = ["derive"] }
+
+# Security
+jsonwebtoken = "9.0"
+argon2 = "0.5"
+
+# Performance and optimization
+half = "2.3"  # f16 support
+bytemuck = "1.14"
+memmap2 = "0.9"
+
+# WASM support
+wasm-bindgen = "0.2"
+js-sys = "0.3"
+web-sys = "0.3"
+console_error_panic_hook = "0.1"
+wee_alloc = "0.4"
+
+# TPU integration (placeholder - actual crate would be coral-sys or similar)
+tch = { version = "0.15", optional = true }  # PyTorch bindings as TPU substitute
+
+# CLI and system info
+num_cpus = "1.16"
+sys-info = "0.9"
+chrono = { version = "0.4", features = ["serde"] }
+
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+proptest = "1.4"
+tokio-test = "0.4"
+tempfile = "3.8"
+wiremock = "0.5"
+axum-test = "14.2"
+
+[features]
+default = ["tpu"]
+tpu = ["tch"]
+benchmark = []
+profiling = []
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
+
+[profile.bench]
+inherits = "release"
+debug = true
+
+[[bench]]
+name = "graph_processing"
+harness = false
+required-features = ["benchmark"]
+
+[[bench]]
+name = "serving_latency"
+harness = false
+required-features = ["benchmark"]
+
+[package.metadata.wasm-pack.profile.release]
+wee-alloc = true

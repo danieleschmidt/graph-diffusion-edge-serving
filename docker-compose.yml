@@ -1,0 +1,128 @@
+version: '3.8'
+
+services:
+  dgdm-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - RUST_LOG=info
+      - DGDM__SERVER__BIND_ADDRESS=0.0.0.0:8080
+      - DGDM__LOGGING__LEVEL=info
+    volumes:
+      - ./config.toml:/app/config.toml:ro
+      - ./models:/app/models:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '2.0'
+        reservations:
+          memory: 512M
+          cpus: '1.0'
+
+  dgdm-server-tpu:
+    build:
+      context: .
+      dockerfile: Dockerfile.tpu
+    ports:
+      - "8081:8080"
+    environment:
+      - RUST_LOG=info
+      - DGDM__SERVER__BIND_ADDRESS=0.0.0.0:8080
+      - DGDM__LOGGING__LEVEL=info
+      - DGDM__TPU__DEVICE_PATH=/dev/apex_0
+      - DGDM__TPU__POWER_LIMIT_WATTS=4.0
+    volumes:
+      - ./config.toml:/app/config.toml:ro
+      - ./models:/app/models:ro
+      - /dev/bus/usb:/dev/bus/usb:rw
+    devices:
+      - /dev/apex_0:/dev/apex_0
+    privileged: true  # Required for TPU access
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '4.0'
+        reservations:
+          memory: 1G
+          cpus: '2.0'
+    profiles:
+      - tpu
+
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    profiles:
+      - monitoring
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    profiles:
+      - monitoring
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - dgdm-server
+    profiles:
+      - production
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    profiles:
+      - cache
+
+volumes:
+  grafana_data:
+  redis_data:
+
+networks:
+  default:
+    name: dgdm-network
