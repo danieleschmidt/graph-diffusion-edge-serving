@@ -86,7 +86,7 @@ impl TpuKernel for SparseMatMulKernel {
 
         // Latency calculation based on matrix size and sparsity
         let base_latency_us = (effective_ops / operations_per_second) * 1e6;
-        let sparsity_benefit = 1.0 - (self.sparsity_ratio * 0.7); // 70% of sparsity saves time
+        let sparsity_benefit = 1.0 - (self.sparsity_ratio * 0.7) as f64; // 70% of sparsity saves time
         let latency = base_latency_us * sparsity_benefit;
 
         Ok(KernelPerformance {
@@ -312,7 +312,6 @@ impl KernelRegistry {
             info!("Benchmarking kernel: {}", name);
             
             let performance = kernel.execute(&self.default_config)?;
-            results.push((name.clone(), performance));
             
             info!(
                 "Kernel '{}': {:.2} TOPS, {:.2} μs latency",
@@ -320,6 +319,8 @@ impl KernelRegistry {
                 performance.power_efficiency_tops_per_watt * 4.0, // Assuming 4W
                 performance.latency_microseconds
             );
+            
+            results.push((name.clone(), performance));
         }
 
         Ok(results)
@@ -396,7 +397,7 @@ macro_rules! tpu_kernel {
 // Example usage of the macro
 tpu_kernel!(
     custom_graph_aggregation,
-    config,
+    _config,
     {
         // Custom kernel implementation
         Ok(KernelPerformance {

@@ -10,7 +10,7 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-use prometheus::{Counter, Histogram, TextEncoder, Encoder};
+use prometheus::{Counter, Histogram, TextEncoder};
 use tracing::{info, warn, error, instrument};
 use tokio::time::Instant;
 
@@ -88,8 +88,8 @@ pub fn create_routes(state: Arc<AppState>) -> Router {
         .with_state(state)
 }
 
-#[instrument(skip(state))]
-async fn health_handler(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+#[instrument(skip(_state))]
+async fn health_handler(State(_state): State<Arc<AppState>>) -> impl IntoResponse {
     let uptime = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap_or_default()
@@ -102,7 +102,7 @@ async fn health_handler(State(state): State<Arc<AppState>>) -> impl IntoResponse
         uptime_seconds: uptime,
         memory_usage_mb: memory_usage,
         #[cfg(feature = "tpu")]
-        tpu_available: state.tpu.is_some(),
+        tpu_available: _state.tpu.is_some(),
         cache_size: 0, // TODO: Implement cache size tracking
     };
 
@@ -117,6 +117,19 @@ async fn diffuse_handler(
     let start_time = Instant::now();
     state.request_counter.inc();
 
+    // Enhanced validation
+    if request.graph.num_nodes() == 0 {
+        return Err(AppError::Validation("Graph must contain at least one node".to_string()));
+    }
+    
+    if request.graph.num_nodes() > 10_000_000 {
+        return Err(AppError::Validation("Graph exceeds maximum node limit (10M)".to_string()));
+    }
+    
+    if request.graph.num_edges() > 100_000_000 {
+        return Err(AppError::Validation("Graph exceeds maximum edge limit (100M)".to_string()));
+    }
+
     info!(
         "Processing graph with {} nodes, {} edges",
         request.graph.num_nodes(),
@@ -128,8 +141,22 @@ async fn diffuse_handler(
         return Err(AppError::Validation(e.to_string()));
     }
 
-    let compact_graph = request.graph.to_compact()
-        .map_err(|e| AppError::Processing(e.to_string()))?;
+    let compact_graph = match request.graph.to_compact() {
+        Ok(graph) => graph,
+        Err(e) => {
+            warn!("Failed to convert graph to compact format: {}", e);
+            return Err(AppError::Processing(format!("Graph conversion failed: {}", e)));
+        }
+    };
+
+    // Memory estimation and safety check
+    let estimated_memory = state.processor.estimate_memory_usage(&compact_graph);
+    if estimated_memory > 1_000_000_000 { // 1GB limit
+        return Err(AppError::Processing(
+            format!("Graph processing would require {}MB memory (limit: 1GB)", 
+                   estimated_memory / 1_000_000)
+        ));
+    }
 
     if !state.processor.can_process(&compact_graph) {
         return Err(AppError::Processing(
@@ -137,8 +164,14 @@ async fn diffuse_handler(
         ));
     }
 
-    let result = state.processor.process(&compact_graph)
-        .map_err(|e| AppError::Processing(e.to_string()))?;
+    // Direct processing (timeout handled at server level)
+    let result = match state.processor.process(&compact_graph) {
+        Ok(result) => result,
+        Err(e) => {
+            error!("Graph processing failed: {}", e);
+            return Err(AppError::Processing(e.to_string()));
+        }
+    };
 
     let embeddings: Vec<Vec<f32>> = result.embeddings
         .rows()
@@ -364,6 +397,10 @@ pub enum AppError {
     Validation(String),
     Processing(String),
     Internal(String),
+    Timeout(String),
+    ResourceLimit(String),
+    AuthenticationError(String),
+    RateLimited(String),
 }
 
 impl IntoResponse for AppError {
@@ -372,6 +409,10 @@ impl IntoResponse for AppError {
             AppError::Validation(msg) => (StatusCode::BAD_REQUEST, "validation_error", msg),
             AppError::Processing(msg) => (StatusCode::UNPROCESSABLE_ENTITY, "processing_error", msg),
             AppError::Internal(msg) => (StatusCode::INTERNAL_SERVER_ERROR, "internal_error", msg),
+            AppError::Timeout(msg) => (StatusCode::REQUEST_TIMEOUT, "timeout_error", msg),
+            AppError::ResourceLimit(msg) => (StatusCode::PAYLOAD_TOO_LARGE, "resource_limit_error", msg),
+            AppError::AuthenticationError(msg) => (StatusCode::UNAUTHORIZED, "auth_error", msg),
+            AppError::RateLimited(msg) => (StatusCode::TOO_MANY_REQUESTS, "rate_limit_error", msg),
         };
 
         let error_response = ErrorResponse {
