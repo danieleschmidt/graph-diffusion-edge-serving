@@ -1,0 +1,61 @@
+# Production Configuration for DGDM Server
+
+[server]
+bind_address = "0.0.0.0:8080"
+enable_cors = true
+enable_compression = true
+max_request_size_mb = 50
+request_timeout_seconds = 300
+
+[graph]
+max_nodes = 1_000_000
+max_edges = 10_000_000
+feature_dim = 512
+diffusion_steps = 10
+batch_size = 32
+quantization = "int8"
+enable_caching = true
+
+[processing]
+temperature = 0.05
+dropout_rate = 0.0
+use_attention = true
+normalize_features = true
+mixed_precision = true
+
+[logging]
+level = "info"
+format = "json"
+enable_json = true
+enable_tracing = true
+
+[optimization]
+enable_prefetching = true
+enable_vectorization = true
+enable_memory_pooling = true
+chunk_size = 2048
+thread_pool_size = 8
+enable_numa_aware = false
+
+[caching]
+max_entries = 50000
+ttl_seconds = 7200  # 2 hours
+enable_lru = true
+enable_compression = true
+max_memory_mb = 2048
+cleanup_interval_seconds = 600  # 10 minutes
+enable_metrics = true
+
+[security]
+enable_rate_limiting = true
+requests_per_minute = 1000
+enable_api_keys = false  # Set to true in production with proper key management
+allowed_origins = ["*"]  # Restrict in production
+max_concurrent_connections = 1000
+
+[monitoring]
+enable_prometheus = true
+enable_jaeger = true
+metrics_port = 9090
+trace_sample_rate = 0.1
+health_check_interval = 30

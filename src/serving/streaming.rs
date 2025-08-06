@@ -1,13 +1,14 @@
 //! Real-time graph streaming and WebSocket handling
 
 use crate::core::{Graph, Node, Edge, DGDMProcessor};
-use crate::core::graph::CompactGraph;
 use serde::{Deserialize, Serialize};
-// use std::collections::HashMap;
+use std::collections::HashMap;
 use std::sync::Arc;
-use tokio::sync::{broadcast, RwLock};
+use std::time::{Duration, Instant};
+use tokio::sync::{broadcast, RwLock, Mutex};
 use tokio_stream::{Stream, StreamExt};
-use tracing::{info, warn, error, instrument};
+use tokio::time::sleep;
+use tracing::{info, warn, error, instrument, debug};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type")]
@@ -47,7 +48,11 @@ pub enum GraphUpdate {
     },
     Clear,
     BatchUpdate { 
-        updates: Vec<GraphUpdate> 
+        updates: Vec<GraphUpdate>
+    },
+    RequestDiffusion {
+        steps: usize,
+        temperature: f32,
     },
 }
 
@@ -96,6 +101,8 @@ pub struct StreamingDGDM {
     config: StreamingConfig,
     update_counter: Arc<RwLock<u64>>,
     pending_updates: Arc<RwLock<Vec<GraphUpdate>>>,
+    last_diffusion: Arc<Mutex<Instant>>,
+    processing_queue: Arc<Mutex<Vec<GraphUpdate>>>,
 }
 
 impl StreamingDGDM {
@@ -103,7 +110,7 @@ impl StreamingDGDM {
         let (update_sender, _) = broadcast::channel(1000);
         let (result_sender, _) = broadcast::channel(1000);
 
-        Self {
+        let streaming = Self {
             processor,
             graph: Arc::new(RwLock::new(Graph::new())),
             update_sender,
@@ -111,7 +118,13 @@ impl StreamingDGDM {
             config,
             update_counter: Arc::new(RwLock::new(0)),
             pending_updates: Arc::new(RwLock::new(Vec::new())),
-        }
+            last_diffusion: Arc::new(Mutex::new(Instant::now())),
+            processing_queue: Arc::new(Mutex::new(Vec::new())),
+        };
+        
+        // Start background processing task
+        streaming.start_background_processing();
+        streaming
     }
 
     pub fn subscribe_updates(&self) -> broadcast::Receiver<GraphUpdate> {
@@ -139,8 +152,19 @@ impl StreamingDGDM {
         }
 
         if self.config.auto_diffuse {
-            let mut pending = self.pending_updates.write().await;
-            pending.push(update);
+            let mut queue = self.processing_queue.lock().await;
+            queue.push(update.clone());
+            
+            // Trigger immediate processing if queue is full or enough time has passed
+            let should_process = queue.len() >= self.config.batch_size || {
+                let last_diffusion = self.last_diffusion.lock().await;
+                last_diffusion.elapsed() >= Duration::from_millis(self.config.diffusion_interval_ms)
+            };
+            
+            if should_process {
+                drop(queue); // Release lock before processing
+                self.trigger_diffusion().await?;
+            }
 
             if pending.len() >= self.config.batch_size {
                 let updates = std::mem::take(&mut *pending);

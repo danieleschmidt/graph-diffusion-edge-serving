@@ -2,6 +2,8 @@
 
 use crate::core::graph::{CompactGraph, GraphConfig};
 use ndarray::Array2;
+use tracing;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -49,18 +51,45 @@ impl DGDMProcessor {
     pub fn process(&self, graph: &CompactGraph) -> crate::Result<DiffusionResult> {
         let start_time = std::time::Instant::now();
 
+        // Enhanced input validation
         if graph.num_nodes() == 0 {
-            return Err(crate::error::Error::GraphProcessing(
+            return Err(crate::error::Error::Validation(
                 "Cannot process empty graph".to_string(),
             ));
         }
 
         if graph.num_nodes() > self.config.max_nodes {
-            return Err(crate::error::Error::GraphProcessing(
+            return Err(crate::error::Error::Validation(
                 format!(
                     "Graph has {} nodes, exceeds maximum of {}",
                     graph.num_nodes(),
                     self.config.max_nodes
+                ),
+            ));
+        }
+        
+        if graph.num_edges() > self.config.max_edges {
+            return Err(crate::error::Error::Validation(
+                format!(
+                    "Graph has {} edges, exceeds maximum of {}",
+                    graph.num_edges(),
+                    self.config.max_edges
+                ),
+            ));
+        }
+        
+        // Feature dimension validation
+        if graph.feature_dim() == 0 {
+            return Err(crate::error::Error::Validation(
+                "Graph features cannot be empty".to_string(),
+            ));
+        }
+        
+        if graph.feature_dim() > 10_000 {
+            return Err(crate::error::Error::Validation(
+                format!(
+                    "Feature dimension {} exceeds maximum of 10,000",
+                    graph.feature_dim()
                 ),
             ));
         }
@@ -77,16 +106,40 @@ impl DGDMProcessor {
         for step in 0..diffusion_steps {
             let prev_embeddings = embeddings.clone();
             
-            self.diffusion_step(graph, &mut embeddings)?;
+            // Robust diffusion step with error recovery
+            if let Err(e) = self.diffusion_step(graph, &mut embeddings) {
+                tracing::warn!("Diffusion step {} failed, attempting recovery: {}", step, e);
+                // Simple recovery: restore previous embeddings and continue
+                embeddings = prev_embeddings.clone();
+                continue;
+            }
+            
+            // NaN/Inf detection and handling
+            if embeddings.iter().any(|&x| !x.is_finite()) {
+                tracing::warn!("Non-finite values detected at step {}, resetting to previous state", step);
+                embeddings = prev_embeddings.clone();
+                continue;
+            }
             
             if self.processing_config.use_attention {
-                self.apply_attention(&mut embeddings)?;
+                if let Err(e) = self.apply_attention(&mut embeddings) {
+                    tracing::warn!("Attention application failed at step {}: {}", step, e);
+                    // Continue without attention
+                }
             }
 
             convergence_score = self.compute_convergence(&prev_embeddings, &embeddings);
             
             if convergence_score < 1e-6 && step > 2 {
+                tracing::debug!("Converged early at step {} with score {}", step, convergence_score);
                 break;
+            }
+            
+            // Detect divergence
+            if convergence_score > 100.0 {
+                return Err(crate::error::Error::GraphProcessing(
+                    format!("Processing diverged at step {} (convergence score: {})", step, convergence_score)
+                ));
             }
         }
 
@@ -185,11 +238,32 @@ impl DGDMProcessor {
     pub async fn process_batch(&self, graphs: Vec<&CompactGraph>) -> crate::Result<Vec<DiffusionResult>> {
         use rayon::prelude::*;
 
+        tracing::info!("Processing batch of {} graphs with parallel execution", graphs.len());
+        
+        // Dynamic chunk size based on graph complexity
+        let avg_nodes = graphs.iter().map(|g| g.num_nodes()).sum::<usize>() / graphs.len().max(1);
+        let chunk_size = if avg_nodes > 100_000 { 1 } else if avg_nodes > 10_000 { 2 } else { 4 };
+        
+        let processed_count = AtomicUsize::new(0);
+        
         let results: Result<Vec<_>, _> = graphs
             .into_par_iter()
-            .map(|graph| self.process(graph))
+            .with_max_len(chunk_size)
+            .map(|graph| {
+                let result = self.process(graph);
+                let count = processed_count.fetch_add(1, Ordering::Relaxed) + 1;
+                if count % 10 == 0 {
+                    tracing::debug!("Processed {}/{} graphs in batch", count, graphs.len());
+                }
+                result
+            })
             .collect();
 
+        match &results {
+            Ok(res) => tracing::info!("Batch processing completed: {} results", res.len()),
+            Err(e) => tracing::error!("Batch processing failed: {}", e),
+        }
+        
         results
     }
 

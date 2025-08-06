@@ -12,7 +12,7 @@ use tower_http::{
     compression::CompressionLayer,
     trace::TraceLayer,
 };
-use tracing::{info, error};
+use tracing::info;
 
 #[cfg(feature = "tpu")]
 use crate::tpu::EdgeTPU;
@@ -91,6 +91,7 @@ impl DGDMServer {
             .layer(TraceLayer::new_for_http())
             .layer(CompressionLayer::new())
             .layer(cors);
+            // Request limits and timeouts handled via Axum configuration
 
         create_routes(self.app_state.clone())
             .layer(middleware)
