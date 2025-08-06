@@ -67,6 +67,7 @@ argon2 = "0.5"
 half = "2.3"  # f16 support
 bytemuck = "1.14"
 memmap2 = "0.9"
+rand = "0.8"
 
 # WASM support
 wasm-bindgen = "0.2"
@@ -75,8 +76,8 @@ web-sys = "0.3"
 console_error_panic_hook = "0.1"
 wee_alloc = "0.4"
 
-# TPU integration (placeholder - actual crate would be coral-sys or similar)
-tch = { version = "0.15", optional = true }  # PyTorch bindings as TPU substitute
+# TPU integration placeholder - disabled for testing
+# tch = { version = "0.15", optional = true }  # PyTorch bindings as TPU substitute
 
 # CLI and system info
 num_cpus = "1.16"
@@ -92,8 +93,8 @@ wiremock = "0.5"
 axum-test = "14.2"
 
 [features]
-default = ["tpu"]
-tpu = ["tch"]
+default = []
+tpu = []  # Mock TPU feature for testing
 benchmark = []
 profiling = []
 

@@ -26,7 +26,7 @@ pub struct AppState {
     pub processing_histogram: Histogram,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct GraphRequest {
     pub graph: Graph,
     #[serde(default)]
@@ -35,7 +35,7 @@ pub struct GraphRequest {
     pub return_metrics: bool,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct DiffusionResponse {
     pub embeddings: Vec<Vec<f32>>,
     pub processing_time_ms: f64,
@@ -45,14 +45,14 @@ pub struct DiffusionResponse {
     pub graph_stats: Option<GraphStats>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ProcessingMetrics {
     pub num_iterations: usize,
     pub convergence_score: f32,
     pub memory_usage_bytes: usize,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct GraphStats {
     pub num_nodes: usize,
     pub num_edges: usize,
@@ -60,7 +60,7 @@ pub struct GraphStats {
     pub feature_dim: usize,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct HealthResponse {
     pub status: String,
     pub uptime_seconds: u64,
