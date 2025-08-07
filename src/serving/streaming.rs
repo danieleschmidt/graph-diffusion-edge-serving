@@ -122,8 +122,6 @@ impl StreamingDGDM {
             processing_queue: Arc::new(Mutex::new(Vec::new())),
         };
         
-        // Start background processing task
-        streaming.start_background_processing();
         streaming
     }
 
@@ -162,13 +160,8 @@ impl StreamingDGDM {
             };
             
             if should_process {
+                let updates = std::mem::take(&mut *queue);
                 drop(queue); // Release lock before processing
-                self.trigger_diffusion().await?;
-            }
-
-            if pending.len() >= self.config.batch_size {
-                let updates = std::mem::take(&mut *pending);
-                drop(pending);
                 self.trigger_diffusion(updates).await?;
             }
         }
@@ -181,12 +174,10 @@ impl StreamingDGDM {
         info!("Applying batch of {} updates", updates.len());
 
         if updates.len() > self.config.max_buffer_size {
-            return Err(crate::error::Error::Validation(
-                format!(
-                    "Batch size {} exceeds maximum {}",
-                    updates.len(),
-                    self.config.max_buffer_size
-                )
+            return Err(crate::error::Error::validation(
+                format!("Batch size {} exceeds maximum {}", updates.len(), self.config.max_buffer_size),
+                format!("batch_size: {}", updates.len()),
+                format!("max_batch_size: {}", self.config.max_buffer_size)
             ));
         }
 
@@ -273,6 +264,11 @@ impl StreamingDGDM {
                     Box::pin(self.apply_update_to_graph(graph, nested_update)).await?;
                 }
             }
+            
+            GraphUpdate::RequestDiffusion { .. } => {
+                // This is handled separately in the trigger_diffusion flow
+                debug!("RequestDiffusion update received in apply_update_to_graph");
+            }
         }
 
         Ok(())
@@ -280,6 +276,11 @@ impl StreamingDGDM {
 
     #[instrument(skip(self, _updates))]
     async fn trigger_diffusion(&self, _updates: Vec<GraphUpdate>) -> crate::Result<()> {
+        // Update last diffusion timestamp
+        {
+            let mut last_diffusion = self.last_diffusion.lock().await;
+            *last_diffusion = Instant::now();
+        }
         let start_time = std::time::Instant::now();
         
         let graph = self.graph.read().await;
@@ -342,8 +343,9 @@ impl StreamingDGDM {
         let graph = self.graph.read().await;
         
         if graph.nodes.is_empty() {
-            return Err(crate::error::Error::GraphProcessing(
-                "Cannot perform diffusion on empty graph".to_string()
+            return Err(crate::error::Error::graph_processing(
+                "Cannot perform diffusion on empty graph",
+                "graph has no nodes"
             ));
         }
 

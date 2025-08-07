@@ -129,8 +129,9 @@ impl AdaptiveQuantizer {
 
     pub fn quantize_array(&self, data: &Array2<f32>, layer_name: &str) -> crate::Result<Array2<i8>> {
         let stats = self.layer_stats.get(layer_name)
-            .ok_or_else(|| crate::error::Error::GraphProcessing(
-                format!("No quantization stats for layer: {}", layer_name)
+            .ok_or_else(|| crate::error::Error::graph_processing(
+                format!("No quantization stats for layer: {}", layer_name),
+                "quantization_stats_lookup"
             ))?;
 
         let quantized = data.map(|&value| {
@@ -145,8 +146,9 @@ impl AdaptiveQuantizer {
 
     pub fn dequantize_array(&self, data: &Array2<i8>, layer_name: &str) -> crate::Result<Array2<f32>> {
         let stats = self.layer_stats.get(layer_name)
-            .ok_or_else(|| crate::error::Error::GraphProcessing(
-                format!("No quantization stats for layer: {}", layer_name)
+            .ok_or_else(|| crate::error::Error::graph_processing(
+                format!("No quantization stats for layer: {}", layer_name),
+                "quantization_stats_lookup"
             ))?;
 
         let dequantized = data.map(|&value| {

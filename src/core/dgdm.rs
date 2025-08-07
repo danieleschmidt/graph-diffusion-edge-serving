@@ -238,10 +238,11 @@ impl DGDMProcessor {
     pub async fn process_batch(&self, graphs: Vec<&CompactGraph>) -> crate::Result<Vec<DiffusionResult>> {
         use rayon::prelude::*;
 
-        tracing::info!("Processing batch of {} graphs with parallel execution", graphs.len());
+        let graph_count = graphs.len();
+        tracing::info!("Processing batch of {} graphs with parallel execution", graph_count);
         
         // Dynamic chunk size based on graph complexity
-        let avg_nodes = graphs.iter().map(|g| g.num_nodes()).sum::<usize>() / graphs.len().max(1);
+        let avg_nodes = graphs.iter().map(|g| g.num_nodes()).sum::<usize>() / graph_count.max(1);
         let chunk_size = if avg_nodes > 100_000 { 1 } else if avg_nodes > 10_000 { 2 } else { 4 };
         
         let processed_count = AtomicUsize::new(0);
@@ -253,7 +254,7 @@ impl DGDMProcessor {
                 let result = self.process(graph);
                 let count = processed_count.fetch_add(1, Ordering::Relaxed) + 1;
                 if count % 10 == 0 {
-                    tracing::debug!("Processed {}/{} graphs in batch", count, graphs.len());
+                    tracing::debug!("Processed {}/{} graphs in batch", count, graph_count);
                 }
                 result
             })
