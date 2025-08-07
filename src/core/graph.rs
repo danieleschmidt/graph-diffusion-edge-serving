@@ -134,8 +134,10 @@ impl Graph {
 
     pub fn validate(&self) -> crate::Result<()> {
         if self.nodes.is_empty() {
-            return Err(crate::error::Error::Validation(
-                "Graph must contain at least one node".to_string(),
+            return Err(crate::error::Error::validation(
+                "Graph must contain at least one node",
+                format!("nodes: {}, edges: {}", self.nodes.len(), self.edges.len()),
+                "min_nodes >= 1"
             ));
         }
 
@@ -144,13 +146,17 @@ impl Graph {
 
         for edge in &self.edges {
             if !node_ids.contains(&edge.source) {
-                return Err(crate::error::Error::Validation(
+                return Err(crate::error::Error::validation(
                     format!("Edge references non-existent source node: {}", edge.source),
+                    format!("edge: {} -> {}, available_nodes: {:?}", edge.source, edge.target, node_ids.len()),
+                    "source_node must exist in graph"
                 ));
             }
             if !node_ids.contains(&edge.target) {
-                return Err(crate::error::Error::Validation(
+                return Err(crate::error::Error::validation(
                     format!("Edge references non-existent target node: {}", edge.target),
+                    format!("edge: {} -> {}, available_nodes: {:?}", edge.source, edge.target, node_ids.len()),
+                    "target_node must exist in graph"
                 ));
             }
         }
@@ -162,8 +168,9 @@ impl Graph {
         self.validate()?;
 
         if self.nodes.is_empty() {
-            return Err(crate::error::Error::GraphProcessing(
-                "Cannot convert empty graph".to_string(),
+            return Err(crate::error::Error::graph_processing(
+                "Cannot convert empty graph",
+                "graph is empty after validation"
             ));
         }
 

@@ -67,7 +67,10 @@ impl DGDMServer {
         
         let listener = TcpListener::bind(&self.bind_addr)
             .await
-            .map_err(|e| crate::error::Error::Network(format!("Failed to bind to {}: {}", self.bind_addr, e)))?;
+            .map_err(|e| crate::error::Error::network(
+                format!("Failed to bind to {}", self.bind_addr),
+                format!("{:?}", self.bind_addr)
+            ))?;
 
         info!("🚀 DGDM Server starting on {}", self.bind_addr);
         info!("📊 Metrics available at /metrics");
@@ -76,7 +79,10 @@ impl DGDMServer {
 
         axum::serve(listener, app)
             .await
-            .map_err(|e| crate::error::Error::Network(format!("Server error: {}", e)))?;
+            .map_err(|e| crate::error::Error::network(
+                format!("Server error: {}", e),
+                format!("{:?}", self.bind_addr)
+            ))?;
 
         Ok(())
     }
@@ -167,7 +173,10 @@ pub async fn start_server_with_config(
 ) -> crate::Result<()> {
     let addr: SocketAddr = bind_addr
         .parse()
-        .map_err(|e| crate::error::Error::Configuration(format!("Invalid bind address '{}': {}", bind_addr, e)))?;
+        .map_err(|e| crate::error::Error::configuration(
+            format!("Invalid bind address '{}': {}", bind_addr, e),
+            "bind_address"
+        ))?;
 
     let server = DGDMServer::new(graph_config, processing_config)
         .bind_addr(addr);
