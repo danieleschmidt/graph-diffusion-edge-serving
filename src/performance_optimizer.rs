@@ -1,13 +1,13 @@
 //! Advanced performance optimization with adaptive algorithms
 
 use crate::{Result, error::Error};
-use crate::core::{DGDMProcessor, ProcessingConfig};
+use crate::core::DGDMProcessor;
 use crate::core::graph::CompactGraph;
 use std::collections::{HashMap, VecDeque};
 use std::sync::{Arc, atomic::{AtomicUsize, AtomicBool, Ordering}};
 use std::time::{Instant, Duration};
 use tokio::sync::{RwLock, Semaphore};
-use tracing::{info, warn, debug};
+use tracing::{info, debug};
 use serde::{Serialize, Deserialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -90,7 +90,7 @@ impl PerformanceOptimizer {
 
         // Acquire processing permit (rate limiting)
         let _permit = self.processing_semaphore.acquire().await
-            .map_err(|e| Error::resource_exhausted("processing_permits", "available", "in_use"))?;
+            .map_err(|_e| Error::resource_exhausted("processing_permits", "available", "in_use"))?;
 
         // Determine optimal processing strategy
         let strategy = self.determine_processing_strategy(graph).await?;
@@ -149,7 +149,7 @@ impl PerformanceOptimizer {
 
     async fn determine_processing_strategy(&self, graph: &CompactGraph) -> Result<ProcessingStrategy> {
         let node_count = graph.num_nodes();
-        let edge_count = graph.num_edges();
+        let _edge_count = graph.num_edges();
         let feature_dim = graph.feature_dim();
 
         // Get current system load
@@ -211,7 +211,7 @@ impl PerformanceOptimizer {
 
     async fn check_cache(&self, graph: &CompactGraph) -> Result<Option<crate::core::dgdm::DiffusionResult>> {
         let cache_key = self.compute_graph_hash(graph);
-        let cache = self.intelligent_cache.read().await;
+        let mut cache = self.intelligent_cache.write().await;
         
         if let Some(entry) = cache.get(&cache_key) {
             if entry.is_valid() {
@@ -262,7 +262,7 @@ impl PerformanceOptimizer {
         hasher.finish()
     }
 
-    async fn optimize_batching(&self, graphs: &[&CompactGraph]) -> Result<Vec<Vec<&CompactGraph>>> {
+    async fn optimize_batching<'a>(&self, graphs: &[&'a CompactGraph]) -> Result<Vec<Vec<&'a CompactGraph>>> {
         let mut batches = Vec::new();
         let mut current_batch = Vec::new();
         let mut current_batch_complexity = 0usize;
@@ -382,7 +382,7 @@ impl PerformanceOptimizer {
     }
 
     async fn merge_partition_results(&self, results: Vec<crate::core::dgdm::DiffusionResult>) -> Result<crate::core::dgdm::DiffusionResult> {
-        use ndarray::{Array2, Axis};
+        use ndarray::Axis;
         
         if results.is_empty() {
             return Err(Error::graph_processing("No partition results to merge", "merge_partitions"));
@@ -443,7 +443,7 @@ impl PerformanceOptimizer {
         }
     }
 
-    async fn update_performance_metrics(&self, result: &crate::core::dgdm::DiffusionResult, processing_time: Duration) {
+    async fn update_performance_metrics(&self, _result: &crate::core::dgdm::DiffusionResult, processing_time: Duration) {
         let metrics = PerformanceMetrics {
             avg_processing_time_ms: processing_time.as_secs_f64() * 1000.0,
             p95_processing_time_ms: processing_time.as_secs_f64() * 1000.0 * 1.5,
@@ -506,7 +506,7 @@ enum ProcessingStrategy {
     Batched,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 struct CacheEntry {
     result: crate::core::dgdm::DiffusionResult,
     created_at: Instant,

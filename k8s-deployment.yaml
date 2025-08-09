@@ -1,0 +1,291 @@
+# Production Kubernetes deployment for DGDM Edge Serving
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: dgdm-system
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dgdm-server
+  namespace: dgdm-system
+  labels:
+    app: dgdm-server
+    version: v1.0.0
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 2
+  selector:
+    matchLabels:
+      app: dgdm-server
+  template:
+    metadata:
+      labels:
+        app: dgdm-server
+        version: v1.0.0
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: dgdm-service-account
+      containers:
+      - name: dgdm-server
+        image: graph-diffusion-edge:latest
+        ports:
+        - containerPort: 8080
+          name: http
+          protocol: TCP
+        env:
+        - name: RUST_LOG
+          value: "info"
+        - name: DGDM__SERVER__BIND_ADDRESS
+          value: "0.0.0.0:8080"
+        - name: DGDM__SERVER__ENABLE_CORS
+          value: "true"
+        - name: DGDM__GRAPH__MAX_NODES
+          value: "1000000"
+        - name: DGDM__GRAPH__MAX_EDGES
+          value: "10000000"
+        - name: DGDM__PROCESSING__TEMPERATURE
+          value: "0.1"
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+            google.com/edgetpu: 1
+          limits:
+            memory: "4Gi"
+            cpu: "2000m"
+            google.com/edgetpu: 1
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          successThreshold: 1
+          failureThreshold: 3
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 65534
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        - name: models
+          mountPath: /app/models
+          readOnly: true
+      volumes:
+      - name: tmp
+        emptyDir: {}
+      - name: models
+        configMap:
+          name: dgdm-models
+      nodeSelector:
+        accelerator: edge-tpu-v5
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - dgdm-server
+              topologyKey: kubernetes.io/hostname
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dgdm-service
+  namespace: dgdm-system
+  labels:
+    app: dgdm-server
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 8080
+    protocol: TCP
+    name: http
+  selector:
+    app: dgdm-server
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: dgdm-ingress
+  namespace: dgdm-system
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+    nginx.ingress.kubernetes.io/proxy-body-size: "100m"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  tls:
+  - hosts:
+    - dgdm-api.yourdomain.com
+    secretName: dgdm-tls
+  rules:
+  - host: dgdm-api.yourdomain.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: dgdm-service
+            port:
+              number: 80
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: dgdm-service-account
+  namespace: dgdm-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: dgdm-role
+  namespace: dgdm-system
+rules:
+- apiGroups: [""]
+  resources: ["configmaps", "secrets"]
+  verbs: ["get", "list"]
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: dgdm-role-binding
+  namespace: dgdm-system
+subjects:
+- kind: ServiceAccount
+  name: dgdm-service-account
+  namespace: dgdm-system
+roleRef:
+  kind: Role
+  name: dgdm-role
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: dgdm-hpa
+  namespace: dgdm-system
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: dgdm-server
+  minReplicas: 3
+  maxReplicas: 20
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  - type: Pods
+    pods:
+      metric:
+        name: dgdm_http_requests_per_second
+      target:
+        type: AverageValue
+        averageValue: "100"
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: dgdm-pdb
+  namespace: dgdm-system
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: dgdm-server
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dgdm-config
+  namespace: dgdm-system
+data:
+  config.toml: |
+    [server]
+    bind_address = "0.0.0.0:8080"
+    enable_cors = true
+    enable_compression = true
+    max_request_size_mb = 100
+    request_timeout_seconds = 30
+
+    [graph]
+    max_nodes = 1000000
+    max_edges = 10000000
+    feature_dim = 512
+    diffusion_steps = 5
+    batch_size = 64
+    quantization = "int8"
+    enable_caching = true
+
+    [processing]
+    temperature = 0.1
+    dropout_rate = 0.1
+    use_attention = true
+    normalize_features = true
+    mixed_precision = true
+
+    [logging]
+    level = "info"
+    format = "json"
+    enable_json = true
+    enable_tracing = true
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: dgdm-metrics
+  namespace: dgdm-system
+  labels:
+    app: dgdm-server
+spec:
+  selector:
+    matchLabels:
+      app: dgdm-server
+  endpoints:
+  - port: http
+    path: /metrics
+    interval: 30s
+    scrapeTimeout: 10s
