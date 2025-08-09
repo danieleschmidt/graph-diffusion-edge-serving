@@ -407,14 +407,16 @@ impl CompilationConfigBuilder {
 
     pub fn build(self) -> crate::Result<ModelCompiler> {
         if self.config.input_model_path.is_empty() {
-            return Err(crate::error::Error::Configuration(
-                "Input model path is required".to_string()
+            return Err(crate::error::Error::configuration(
+                "Input model path is required",
+                "input_model_path"
             ));
         }
 
         if self.config.output_model_path.is_empty() {
-            return Err(crate::error::Error::Configuration(
-                "Output model path is required".to_string()
+            return Err(crate::error::Error::configuration(
+                "Output model path is required",
+                "output_model_path"
             ));
         }
 

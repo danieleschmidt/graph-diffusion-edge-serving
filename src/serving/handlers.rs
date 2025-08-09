@@ -1,6 +1,7 @@
 //! HTTP request handlers for graph diffusion API
 
 use crate::core::{DGDMProcessor, Graph, ProcessingConfig};
+use crate::validation::{GraphValidator, ProcessingConfigValidator, SecurityValidator};
 use axum::{
     extract::{State, Json},
     http::StatusCode,
@@ -11,7 +12,7 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use prometheus::{Counter, Histogram, TextEncoder};
-use tracing::{info, warn, error, instrument};
+use tracing::{info, warn, error, instrument, debug};
 use tokio::time::Instant;
 
 #[cfg(feature = "tpu")]
@@ -24,6 +25,9 @@ pub struct AppState {
     pub tpu: Option<Arc<EdgeTPU>>,
     pub request_counter: Counter,
     pub processing_histogram: Histogram,
+    pub graph_validator: Arc<GraphValidator>,
+    pub config_validator: Arc<ProcessingConfigValidator>,
+    pub security_validator: Arc<SecurityValidator>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -117,18 +121,20 @@ async fn diffuse_handler(
     let start_time = Instant::now();
     state.request_counter.inc();
 
-    // Enhanced validation
-    if request.graph.num_nodes() == 0 {
-        return Err(AppError::Validation("Graph must contain at least one node".to_string()));
+    // Comprehensive validation using new validation system
+    if let Err(e) = state.graph_validator.validate_graph(&request.graph) {
+        error!("Graph validation failed: {}", e);
+        return Err(AppError::Validation(e.to_string()));
     }
-    
-    if request.graph.num_nodes() > 10_000_000 {
-        return Err(AppError::Validation("Graph exceeds maximum node limit (10M)".to_string()));
+
+    if let Some(ref config) = request.config {
+        if let Err(e) = state.config_validator.validate(config) {
+            error!("Processing config validation failed: {}", e);
+            return Err(AppError::Validation(e.to_string()));
+        }
     }
-    
-    if request.graph.num_edges() > 100_000_000 {
-        return Err(AppError::Validation("Graph exceeds maximum edge limit (100M)".to_string()));
-    }
+
+    debug!("Input validation passed successfully");
 
     info!(
         "Processing graph with {} nodes, {} edges",

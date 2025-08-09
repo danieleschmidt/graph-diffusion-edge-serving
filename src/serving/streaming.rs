@@ -428,7 +428,7 @@ pub fn create_update_stream(
 ) -> impl Stream<Item = crate::Result<GraphUpdate>> {
     let receiver = streaming_dgdm.subscribe_updates();
     tokio_stream::wrappers::BroadcastStream::new(receiver)
-        .map(|result| result.map_err(|e| crate::error::Error::Network(e.to_string())))
+        .map(|result| result.map_err(|e| crate::error::Error::network(e.to_string(), "websocket_stream")))
 }
 
 pub fn create_result_stream(
@@ -436,7 +436,7 @@ pub fn create_result_stream(
 ) -> impl Stream<Item = crate::Result<StreamingResult>> {
     let receiver = streaming_dgdm.subscribe_results();
     tokio_stream::wrappers::BroadcastStream::new(receiver)
-        .map(|result| result.map_err(|e| crate::error::Error::Network(e.to_string())))
+        .map(|result| result.map_err(|e| crate::error::Error::network(e.to_string(), "websocket_stream")))
 }
 
 #[cfg(test)]

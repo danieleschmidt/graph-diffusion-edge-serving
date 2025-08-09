@@ -82,7 +82,10 @@ wee_alloc = "0.4"
 # CLI and system info
 num_cpus = "1.16"
 sys-info = "0.9"
+lazy_static = "1.5.0"
 chrono = { version = "0.4", features = ["serde"] }
+regex = "1.10"
+unicode-normalization = "0.1"
 
 # Async traits for health checks
 async-trait = "0.1"
