@@ -53,44 +53,54 @@ impl DGDMProcessor {
 
         // Enhanced input validation
         if graph.num_nodes() == 0 {
-            return Err(crate::error::Error::Validation(
-                "Cannot process empty graph".to_string(),
+            return Err(crate::error::Error::validation(
+                "Cannot process empty graph",
+                "graph.num_nodes() == 0",
+                "num_nodes > 0"
             ));
         }
 
         if graph.num_nodes() > self.config.max_nodes {
-            return Err(crate::error::Error::Validation(
+            return Err(crate::error::Error::validation(
                 format!(
                     "Graph has {} nodes, exceeds maximum of {}",
                     graph.num_nodes(),
                     self.config.max_nodes
                 ),
+                format!("{}", graph.num_nodes()),
+                format!("<= {}", self.config.max_nodes)
             ));
         }
         
         if graph.num_edges() > self.config.max_edges {
-            return Err(crate::error::Error::Validation(
+            return Err(crate::error::Error::validation(
                 format!(
                     "Graph has {} edges, exceeds maximum of {}",
                     graph.num_edges(),
                     self.config.max_edges
                 ),
+                format!("{}", graph.num_edges()),
+                format!("<= {}", self.config.max_edges)
             ));
         }
         
         // Feature dimension validation
         if graph.feature_dim() == 0 {
-            return Err(crate::error::Error::Validation(
-                "Graph features cannot be empty".to_string(),
+            return Err(crate::error::Error::validation(
+                "Graph features cannot be empty",
+                "feature_dim == 0",
+                "feature_dim > 0"
             ));
         }
         
         if graph.feature_dim() > 10_000 {
-            return Err(crate::error::Error::Validation(
+            return Err(crate::error::Error::validation(
                 format!(
                     "Feature dimension {} exceeds maximum of 10,000",
                     graph.feature_dim()
                 ),
+                format!("{}", graph.feature_dim()),
+                "<= 10000"
             ));
         }
 
@@ -137,8 +147,9 @@ impl DGDMProcessor {
             
             // Detect divergence
             if convergence_score > 100.0 {
-                return Err(crate::error::Error::GraphProcessing(
-                    format!("Processing diverged at step {} (convergence score: {})", step, convergence_score)
+                return Err(crate::error::Error::graph_processing(
+                    format!("Processing diverged at step {} (convergence score: {})", step, convergence_score),
+                    format!("step={}, convergence={}", step, convergence_score)
                 ));
             }
         }

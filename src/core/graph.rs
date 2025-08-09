@@ -183,8 +183,9 @@ impl Graph {
 
         for node in &self.nodes {
             if node.features.len() != feature_dim {
-                return Err(crate::error::Error::GraphProcessing(
-                    "All nodes must have the same feature dimension".to_string(),
+                return Err(crate::error::Error::graph_processing(
+                    "All nodes must have the same feature dimension",
+                    format!("node_{}_features_len", node.id)
                 ));
             }
             node_ids.push(node.id);
@@ -194,8 +195,9 @@ impl Graph {
         let node_features = Array2::from_shape_vec(
             (num_nodes, feature_dim),
             features_flat,
-        ).map_err(|e| crate::error::Error::GraphProcessing(
-            format!("Failed to create feature matrix: {}", e)
+        ).map_err(|e| crate::error::Error::graph_processing(
+            format!("Failed to create feature matrix: {}", e),
+            "feature_matrix_creation"
         ))?;
 
         let node_id_to_idx: HashMap<u32, usize> = 

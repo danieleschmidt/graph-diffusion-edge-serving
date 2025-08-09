@@ -161,11 +161,11 @@ impl ServerConfig {
             .add_source(File::with_name(config_path).required(false))
             .add_source(Environment::with_prefix("DGDM").separator("__"))
             .build()
-            .map_err(|e| graph_diffusion_edge::error::Error::Configuration(e.to_string()))?;
+            .map_err(|e| graph_diffusion_edge::error::Error::configuration(e.to_string(), "config_build"))?;
 
         settings
             .try_deserialize()
-            .map_err(|e| graph_diffusion_edge::error::Error::Configuration(e.to_string()))
+            .map_err(|e| graph_diffusion_edge::error::Error::configuration(e.to_string(), "config_deserialize"))
     }
 }
 
@@ -270,8 +270,9 @@ async fn serve_command(bind_address: String, config: ServerConfig) -> Result<()>
 
     let addr: SocketAddr = bind_address
         .parse()
-        .map_err(|e| graph_diffusion_edge::error::Error::Configuration(
-            format!("Invalid bind address: {}", e)
+        .map_err(|e| graph_diffusion_edge::error::Error::configuration(
+            format!("Invalid bind address: {}", e),
+            "bind_address"
         ))?;
 
     start_server_with_config(
@@ -301,8 +302,9 @@ fn validate_config_command(config: ServerConfig) -> Result<()> {
     // Validate processing settings
     if config.processing.temperature <= 0.0 {
         error!("❌ Temperature must be positive: {}", config.processing.temperature);
-        return Err(graph_diffusion_edge::error::Error::Configuration(
-            "Invalid temperature value".to_string()
+        return Err(graph_diffusion_edge::error::Error::configuration(
+            "Invalid temperature value",
+            "processing.temperature"
         ));
     }
 
@@ -310,8 +312,9 @@ fn validate_config_command(config: ServerConfig) -> Result<()> {
     if let Some(ref tpu_config) = config.tpu {
         if tpu_config.power_limit_watts > 6.0 {
             error!("❌ TPU power limit exceeds maximum: {}W", tpu_config.power_limit_watts);
-            return Err(graph_diffusion_edge::error::Error::Configuration(
-                "Invalid TPU power limit".to_string()
+            return Err(graph_diffusion_edge::error::Error::configuration(
+                "Invalid TPU power limit",
+                "tpu.power_limit_watts"
             ));
         }
 

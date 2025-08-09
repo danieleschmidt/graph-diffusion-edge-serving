@@ -198,18 +198,18 @@ impl CircuitBreaker {
                         self.name, failure_count, self.config.failure_threshold
                     );
                     *self.state.write().await = CircuitState::Open;
-                    *self.last_failure_time.write().await = Some(Instant::now());
+                    *self.last_failure_time.write().await = Some(std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_secs());
                 }
             }
             CircuitState::HalfOpen => {
                 warn!("Circuit breaker '{}' transitioning from HalfOpen back to Open", self.name);
                 *self.state.write().await = CircuitState::Open;
-                *self.last_failure_time.write().await = Some(Instant::now());
+                *self.last_failure_time.write().await = Some(std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_secs());
                 self.reset_counters();
             }
             CircuitState::Open => {
                 // Already open, update last failure time
-                *self.last_failure_time.write().await = Some(Instant::now());
+                *self.last_failure_time.write().await = Some(std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_secs());
             }
         }
     }
@@ -227,8 +227,9 @@ impl CircuitBreaker {
     }
 
     async fn should_attempt_reset(&self) -> bool {
-        if let Some(last_failure) = *self.last_failure_time.read().await {
-            last_failure.elapsed() >= self.config.timeout_duration
+        if let Some(last_failure_timestamp) = *self.last_failure_time.read().await {
+            let current_timestamp = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_secs();
+            Duration::from_secs(current_timestamp.saturating_sub(last_failure_timestamp)) >= self.config.timeout_duration
         } else {
             false
         }
@@ -269,7 +270,7 @@ impl CircuitBreaker {
     pub async fn force_open(&self) {
         warn!("Circuit breaker '{}' forced to Open state", self.name);
         *self.state.write().await = CircuitState::Open;
-        *self.last_failure_time.write().await = Some(Instant::now());
+        *self.last_failure_time.write().await = Some(std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_secs());
     }
 
     pub async fn force_closed(&self) {

@@ -2,6 +2,9 @@
 
 use crate::core::{DGDMProcessor, GraphConfig, ProcessingConfig};
 use crate::serving::handlers::{create_routes, AppState};
+use crate::validation::{GraphValidator, ProcessingConfigValidator, SecurityValidator};
+use crate::security::{SecurityMiddleware, AuthConfig, RateLimiter, security_headers_middleware, request_size_limit_middleware, rate_limit_middleware};
+use crate::monitoring::{metrics_middleware, MetricsCollector};
 use axum::Router;
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -43,6 +46,9 @@ impl DGDMServer {
                     "Graph processing duration in seconds"
                 )
             ).unwrap(),
+            graph_validator: Arc::new(GraphValidator::new()),
+            config_validator: Arc::new(ProcessingConfigValidator),
+            security_validator: Arc::new(SecurityValidator::new()),
         });
 
         Self {
@@ -88,6 +94,11 @@ impl DGDMServer {
     }
 
     fn create_app(&self) -> Router {
+        // Security configuration
+        let auth_config = AuthConfig::default();
+        let security_middleware = Arc::new(SecurityMiddleware::new(auth_config));
+        let rate_limiter = Arc::new(RateLimiter::new(100, 60)); // 100 requests per minute
+        
         let cors = CorsLayer::new()
             .allow_origin(Any)
             .allow_methods(Any)
@@ -96,8 +107,14 @@ impl DGDMServer {
         let middleware = ServiceBuilder::new()
             .layer(TraceLayer::new_for_http())
             .layer(CompressionLayer::new())
+            .layer(axum::middleware::from_fn(metrics_middleware))
+            .layer(axum::middleware::from_fn(security_headers_middleware))
+            .layer(axum::middleware::from_fn(request_size_limit_middleware))
+            .layer(axum::middleware::from_fn_with_state(
+                rate_limiter, 
+                rate_limit_middleware
+            ))
             .layer(cors);
-            // Request limits and timeouts handled via Axum configuration
 
         create_routes(self.app_state.clone())
             .layer(middleware)

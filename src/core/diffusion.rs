@@ -65,8 +65,9 @@ impl DiffusionEngine {
         initial_features: &Array2<f32>,
     ) -> crate::Result<(Array2<f32>, DiffusionMetrics)> {
         if graph.num_nodes() == 0 {
-            return Err(crate::error::Error::GraphProcessing(
-                "Cannot diffuse on empty graph".to_string(),
+            return Err(crate::error::Error::graph_processing(
+                "Cannot diffuse on empty graph",
+                "empty_graph"
             ));
         }
 

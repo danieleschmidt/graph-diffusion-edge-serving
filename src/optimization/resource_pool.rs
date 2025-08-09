@@ -460,7 +460,7 @@ where
 pub struct PooledConnection<'a, T, P> 
 where
     T: PoolableResource<CreateParams = P> + Send + Sync,
-    P: Send + Sync,
+    P: Send + Sync + Clone,
 {
     resource: Option<PooledResource<T>>,
     pool: &'a ResourcePool<T, P>,
@@ -470,7 +470,7 @@ where
 impl<'a, T, P> PooledConnection<'a, T, P> 
 where
     T: PoolableResource<CreateParams = P> + Send + Sync,
-    P: Send + Sync,
+    P: Send + Sync + Clone,
 {
     pub fn get(&self) -> &T {
         &self.resource.as_ref().unwrap().resource
@@ -489,13 +489,21 @@ where
 impl<'a, T, P> Drop for PooledConnection<'a, T, P> 
 where
     T: PoolableResource<CreateParams = P> + Send + Sync,
-    P: Send + Sync,
+    P: Send + Sync + Clone,
 {
     fn drop(&mut self) {
         if let Some(connection) = self.resource.take() {
-            let pool = self.pool;
-            tokio::spawn(async move {
-                pool.return_connection(connection).await;
+            // Use a blocking runtime-agnostic approach for returning connections
+            // In production, you'd want to handle this more elegantly
+            let available = self.pool.available.clone();
+            let _ = std::thread::spawn(move || {
+                let rt = tokio::runtime::Handle::try_current();
+                if let Ok(handle) = rt {
+                    handle.spawn(async move {
+                        let mut available_guard = available.write().await;
+                        available_guard.push_back(connection);
+                    });
+                }
             });
         }
     }

@@ -6,6 +6,10 @@
 pub mod core;
 pub mod serving;
 pub mod optimization;
+pub mod validation;
+pub mod security;
+pub mod monitoring;
+pub mod scaling;
 
 #[cfg(feature = "tpu")]
 pub mod tpu;
