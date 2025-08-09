@@ -452,6 +452,9 @@ mod tests {
             processing_histogram: Histogram::with_opts(
                 prometheus::HistogramOpts::new("test_duration", "Test duration")
             ).unwrap(),
+            graph_validator: Arc::new(crate::validation::GraphValidator::new()),
+            config_validator: Arc::new(crate::validation::ProcessingConfigValidator),
+            security_validator: Arc::new(crate::validation::SecurityValidator::new()),
         });
 
         TestServer::new(create_routes(app_state)).unwrap()

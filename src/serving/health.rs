@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::RwLock;
-use tracing::{info, warn, error, debug};
+use tracing::{info, warn};
 use crate::serving::circuit_breaker::{CircuitBreakerRegistry, CircuitState};
 use crate::core::DGDMProcessor;
 
@@ -79,7 +79,7 @@ impl HealthChecker {
     }
 
     pub async fn check_health(&self) -> HealthStatus {
-        let start = std::time::Instant::now();
+        let _start = std::time::Instant::now();
         let mut all_checks = HashMap::new();
         let mut overall_status = ServiceStatus::Healthy;
 
