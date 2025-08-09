@@ -10,7 +10,7 @@ use std::time::{SystemTime, UNIX_EPOCH, Duration, Instant};
 use std::collections::HashMap;
 use serde::{Serialize, Deserialize};
 use tokio::sync::RwLock;
-use tracing::{info, warn, error, debug};
+use tracing::{info, warn, error};
 
 lazy_static::lazy_static! {
     // Request metrics

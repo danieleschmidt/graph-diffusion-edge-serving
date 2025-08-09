@@ -4,7 +4,7 @@ use crate::core::{DGDMProcessor, GraphConfig, ProcessingConfig};
 use crate::serving::handlers::{create_routes, AppState};
 use crate::validation::{GraphValidator, ProcessingConfigValidator, SecurityValidator};
 use crate::security::{SecurityMiddleware, AuthConfig, RateLimiter, security_headers_middleware, request_size_limit_middleware, rate_limit_middleware};
-use crate::monitoring::{metrics_middleware, MetricsCollector};
+use crate::monitoring::{metrics_middleware};
 use axum::Router;
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -73,7 +73,7 @@ impl DGDMServer {
         
         let listener = TcpListener::bind(&self.bind_addr)
             .await
-            .map_err(|e| crate::error::Error::network(
+            .map_err(|_e| crate::error::Error::network(
                 format!("Failed to bind to {}", self.bind_addr),
                 format!("{:?}", self.bind_addr)
             ))?;

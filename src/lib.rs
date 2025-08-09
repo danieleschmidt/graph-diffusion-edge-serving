@@ -10,6 +10,7 @@ pub mod validation;
 pub mod security;
 pub mod monitoring;
 pub mod scaling;
+pub mod security_scanner;
 
 #[cfg(feature = "tpu")]
 pub mod tpu;
