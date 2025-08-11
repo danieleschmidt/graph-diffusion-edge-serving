@@ -6,6 +6,7 @@ pub mod streaming;
 pub mod health;
 pub mod middleware;
 pub mod circuit_breaker;
+// pub mod resilient_server; // Temporarily disabled for compilation
 
 pub use server::{DGDMServer, start_server_with_config};
 pub use handlers::{GraphRequest, DiffusionResponse};

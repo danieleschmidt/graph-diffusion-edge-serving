@@ -21,6 +21,26 @@ path = "src/bin/server.rs"
 name = "basic_demo"
 path = "examples/basic_demo.rs"
 
+[[example]]
+name = "resilience_demo"
+path = "examples/resilience_demo.rs"
+
+[[example]]
+name = "robust_demo"
+path = "examples/robust_demo.rs"
+
+[[example]]
+name = "performance_demo"
+path = "examples/performance_demo.rs"
+
+[[example]]
+name = "scaling_demo"
+path = "examples/scaling_demo.rs"
+
+[[example]]
+name = "final_demo"
+path = "examples/final_demo.rs"
+
 [dependencies]
 # Core async runtime
 tokio = { version = "1.0", features = ["full"] }
@@ -93,6 +113,11 @@ unicode-normalization = "0.1"
 
 # Async traits for health checks
 async-trait = "0.1"
+
+# Additional dependencies for resilience patterns
+parking_lot = "0.12"
+futures = "0.3"
+
 
 [dev-dependencies]
 criterion = { version = "0.5", features = ["html_reports"] }
