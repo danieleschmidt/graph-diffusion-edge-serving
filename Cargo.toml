@@ -17,6 +17,10 @@ crate-type = ["cdylib", "rlib"]
 name = "dgdm-server"
 path = "src/bin/server.rs"
 
+[[example]]
+name = "basic_demo"
+path = "examples/basic_demo.rs"
+
 [dependencies]
 # Core async runtime
 tokio = { version = "1.0", features = ["full"] }

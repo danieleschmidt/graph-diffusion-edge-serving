@@ -583,6 +583,7 @@ mod tests {
         is_valid: bool,
     }
 
+    #[derive(Clone)]
     struct MockCreateParams {
         should_fail: bool,
     }
@@ -624,7 +625,7 @@ mod tests {
         };
 
         let params = MockCreateParams { should_fail: false };
-        let pool = ResourcePool::new(config, params).await.unwrap();
+        let pool: ResourcePool<MockResource, _> = ResourcePool::new(config, params).await.unwrap();
 
         let conn1 = pool.acquire().await.unwrap();
         let conn2 = pool.acquire().await.unwrap();
@@ -646,7 +647,7 @@ mod tests {
         };
 
         let params = MockCreateParams { should_fail: false };
-        let pool = ResourcePool::new(config, params).await.unwrap();
+        let pool: ResourcePool<MockResource, _> = ResourcePool::new(config, params).await.unwrap();
 
         let first_id = {
             let conn = pool.acquire().await.unwrap();
@@ -667,7 +668,7 @@ mod tests {
         };
 
         let params = MockCreateParams { should_fail: false };
-        let pool = ResourcePool::new(config, params).await.unwrap();
+        let pool: ResourcePool<MockResource, _> = ResourcePool::new(config, params).await.unwrap();
 
         assert!(pool.health_check().await);
 
@@ -684,7 +685,7 @@ mod tests {
         };
 
         let params = MockCreateParams { should_fail: false };
-        let pool = ResourcePool::new(config, params).await.unwrap();
+        let pool: ResourcePool<MockResource, _> = ResourcePool::new(config, params).await.unwrap();
 
         // Acquire and return a connection
         {
@@ -706,7 +707,7 @@ mod tests {
         };
 
         let params = MockCreateParams { should_fail: false };
-        let pool = Arc::new(ResourcePool::new(config, params).await.unwrap());
+        let pool: Arc<ResourcePool<MockResource, _>> = Arc::new(ResourcePool::new(config, params).await.unwrap());
 
         let mut handles = vec![];
 
