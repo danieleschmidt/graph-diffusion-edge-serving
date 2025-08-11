@@ -426,6 +426,7 @@ mod tests {
             edges: vec![
                 Edge { source: 1, target: 2, weight: 0.5, edge_type: None },
             ],
+            metadata: std::collections::HashMap::new(),
         };
         
         assert!(validator.validate_graph(&graph).is_ok());

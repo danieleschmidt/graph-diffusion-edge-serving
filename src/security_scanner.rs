@@ -182,7 +182,7 @@ impl SecurityScanner {
         Ok(false)
     }
 
-    async fn check_ip_reputation(&self, ip: &str) -> Result<ReputationScore> {
+    pub async fn check_ip_reputation(&self, ip: &str) -> Result<ReputationScore> {
         let mut cache = self.ip_reputation_cache.write().await;
         
         // Check cache first
