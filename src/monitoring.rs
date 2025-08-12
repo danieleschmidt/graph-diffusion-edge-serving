@@ -1,9 +1,9 @@
 //! Comprehensive monitoring, metrics, and observability for DGDM server
 
 use prometheus::{
-    Counter, Histogram, Gauge, IntGauge, IntCounter, HistogramOpts, 
+    Counter, Histogram, Gauge, IntGauge, HistogramOpts, 
     TextEncoder, Encoder, register_counter, register_histogram, 
-    register_gauge, register_int_gauge, register_int_counter,
+    register_gauge, register_int_gauge,
 };
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH, Duration, Instant};

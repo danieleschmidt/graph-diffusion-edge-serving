@@ -10,7 +10,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::RwLock;
-use tracing::{debug, warn, error};
+use tracing::{debug, warn};
 
 // Rate limiting middleware
 #[derive(Clone)]

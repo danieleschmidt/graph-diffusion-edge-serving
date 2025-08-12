@@ -3,10 +3,9 @@
 use crate::core::graph::CompactGraph;
 use ndarray::{Array2, s};
 use serde::{Serialize, Deserialize};
-use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use tracing::{info, debug, warn};
+use tracing::{info, debug};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PerformanceConfig {
@@ -241,7 +240,7 @@ impl VectorizedOps {
     }
 
     pub fn parallel_normalize_rows(matrix: &mut Array2<f32>) {
-        use rayon::prelude::*;
+        
         
         // Simple sequential normalization for now
         for mut row in matrix.rows_mut() {

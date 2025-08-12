@@ -1,13 +1,14 @@
 //! Demonstration of resilience patterns and robust error handling
 
 use graph_diffusion_edge::{
-    core::{Graph, Node, Edge, GraphConfig, DGDMProcessor, ProcessingConfig},
+    core::{Graph, Node, Edge},
     resilience::{AdaptiveCircuitBreaker, CircuitBreakerConfig, SmartRetryPolicy},
     validation::GraphValidator,
+    error::Error,
     Result,
 };
 use std::time::Duration;
-use tracing::{info, warn, error};
+use tracing::{info, warn};
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -79,7 +80,7 @@ async fn demonstrate_circuit_breaker() -> Result<()> {
     
     info!("  Testing successful operations...");
     for i in 1..=3 {
-        let result = circuit_breaker.call(async { Ok::<i32, crate::error::Error>(i * 10) }).await;
+        let result = circuit_breaker.call(async { Ok::<i32, Error>(i * 10) }).await;
         match result {
             Ok(value) => info!("    Operation {}: Success ({})", i, value),
             Err(e) => warn!("    Operation {}: Failed ({})", i, e),
@@ -89,7 +90,7 @@ async fn demonstrate_circuit_breaker() -> Result<()> {
     info!("  Simulating failures to trigger circuit breaker...");
     for i in 1..=5 {
         let result = circuit_breaker.call(async { 
-            Err::<i32, _>(crate::error::Error::network("Simulated failure", "test"))
+            Err::<i32, _>(Error::network("Simulated failure", "test"))
         }).await;
         match result {
             Ok(_) => warn!("    Failure {}: Unexpectedly succeeded", i),
@@ -116,15 +117,15 @@ async fn demonstrate_retry_policy() -> Result<()> {
     let mut attempt_counter = 0;
     let result = retry_policy.execute(|| {
         attempt_counter += 1;
-        async move {
+        Box::pin(async move {
             if attempt_counter < 3 {
                 info!("    Attempt {}: Simulating temporary failure", attempt_counter);
-                Err(crate::error::Error::network("Temporary network issue", "localhost"))
+                Err(Error::network("Temporary network issue", "localhost"))
             } else {
                 info!("    Attempt {}: Success!", attempt_counter);
                 Ok(42)
             }
-        }
+        })
     }).await;
     
     match result {
@@ -133,13 +134,13 @@ async fn demonstrate_retry_policy() -> Result<()> {
     }
     
     info!("  Testing non-retryable error...");
-    let result = retry_policy.execute(|| async {
-        Err::<i32, _>(crate::error::Error::validation(
+    let result = retry_policy.execute(|| Box::pin(async {
+        Err::<i32, _>(Error::validation(
             "Invalid input", 
             "test_input", 
             "valid_format"
         ))
-    }).await;
+    })).await;
     
     match result {
         Ok(_) => warn!("    ❌ Non-retryable error unexpectedly succeeded"),

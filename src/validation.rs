@@ -4,7 +4,7 @@ use crate::core::{Graph, Node, Edge, ProcessingConfig};
 use crate::Result;
 use regex::Regex;
 use std::collections::HashSet;
-use tracing::{warn, error};
+use tracing::warn;
 
 const MAX_NODES: usize = 10_000_000;
 const MAX_EDGES: usize = 100_000_000; 
@@ -82,7 +82,7 @@ impl SecurityValidator {
         }
 
         // Unicode normalization check
-        use unicode_normalization::{UnicodeNormalization, is_nfc};
+        use unicode_normalization::is_nfc;
         if !is_nfc(input) {
             warn!("Non-NFC Unicode detected in field '{}'", field_name);
         }

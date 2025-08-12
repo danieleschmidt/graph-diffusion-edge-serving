@@ -3,9 +3,7 @@
 use serde::{Serialize, Deserialize};
 use std::collections::HashMap;
 use std::sync::Arc;
-use std::time::Duration;
 use tokio::sync::RwLock;
-use tracing::{info, warn};
 use crate::serving::circuit_breaker::{CircuitBreakerRegistry, CircuitState};
 use crate::core::DGDMProcessor;
 

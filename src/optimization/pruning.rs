@@ -1,6 +1,6 @@
 //! Graph pruning algorithms for reducing computational complexity
 
-use crate::core::graph::{Graph, CompactGraph, Node, Edge};
+use crate::core::graph::{Graph, Edge};
 use ndarray::Array2;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};

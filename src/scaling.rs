@@ -6,10 +6,9 @@ use std::time::{Duration, Instant};
 use tokio::sync::{RwLock, Semaphore, Notify, mpsc};
 use tokio::time::{interval, sleep};
 use serde::{Serialize, Deserialize};
-use tracing::{info, warn, error, debug, instrument};
+use tracing::{info, warn, debug};
 use crate::core::{Graph};
 use crate::core::dgdm::DiffusionResult;
-use crate::optimization::resource_pool::ResourcePool;
 
 // Adaptive load balancing and auto-scaling
 #[derive(Debug, Clone, Serialize, Deserialize)]
