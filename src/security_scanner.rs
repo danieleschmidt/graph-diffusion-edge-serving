@@ -146,8 +146,8 @@ impl SecurityScanner {
                 stored_alerts.drain(0..1000); // Remove oldest 1000 alerts
             }
 
-            // Block critical threats
-            if critical_count > 0 || high_count > 2 {
+            // Block critical threats or injection attempts
+            if critical_count > 0 || high_count > 0 {
                 return Err(Error::Security {
                     violation: format!("Multiple security violations detected: {} critical, {} high", critical_count, high_count),
                     context: format!("source_ip: {:?}", source_ip),

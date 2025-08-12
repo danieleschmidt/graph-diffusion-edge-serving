@@ -1,6 +1,6 @@
 //! Adaptive quantization for optimizing model performance and memory usage
 
-use ndarray::{Array1, Array2};
+use ndarray::Array2;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use tracing::{debug, info, warn};

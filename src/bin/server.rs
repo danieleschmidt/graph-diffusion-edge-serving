@@ -1,7 +1,7 @@
 //! DGDM Server Binary - Ultra-Fast Graph Diffusion on Edge TPU
 
 use graph_diffusion_edge::{
-    serving::{DGDMServer, start_server_with_config},
+    serving::start_server_with_config,
     core::{GraphConfig, ProcessingConfig},
     Result,
 };

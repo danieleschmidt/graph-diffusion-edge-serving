@@ -1,10 +1,10 @@
 //! Resilience patterns: Circuit breakers, retries, bulkheads, and failsafes
 
 use crate::{Result, error::Error};
-use std::sync::{Arc, atomic::{AtomicU64, AtomicBool, Ordering}};
+use std::sync::{Arc, atomic::{AtomicU64, Ordering}};
 use std::time::{Duration, Instant};
 use tokio::time::sleep;
-use tracing::{warn, error, info, debug};
+use tracing::{warn, info, debug};
 
 /// Enhanced circuit breaker with multiple failure types and adaptive thresholds
 #[derive(Debug)]
@@ -628,13 +628,13 @@ mod tests {
         
         let result = policy.execute(|| {
             attempt_count += 1;
-            async move {
+            Box::pin(async move {
                 if attempt_count < 2 {
                     Err(Error::network("Connection refused", "localhost:8080"))
                 } else {
                     Ok(42)
                 }
-            }
+            })
         }).await;
         
         assert!(result.is_ok());

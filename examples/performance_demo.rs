@@ -60,22 +60,22 @@ async fn test_smart_caching() -> Result<()> {
     let key = "test_graph_123".to_string();
     let start = Instant::now();
     
-    let result = cache.get_or_compute(&key, || {
+    let result = if let Some(cached) = cache.get(&key).await {
+        cached
+    } else {
         // Simulate expensive computation
         std::thread::sleep(Duration::from_millis(10));
-        Ok::<f64, crate::error::Error>(42.0)
-    }).await?;
+        let result = 42.0;
+        cache.put(key.clone(), result).await;
+        result
+    };
     
     let first_access = start.elapsed();
     println!("   Cache miss: {:.2}ms -> result: {}", first_access.as_millis(), result);
     
     // Test cache hit (should be much faster)
     let start = Instant::now();
-    let result = cache.get_or_compute(&key, || {
-        // This shouldn't execute due to cache hit
-        std::thread::sleep(Duration::from_millis(10));
-        Ok::<f64, crate::error::Error>(99.0)
-    }).await?;
+    let result = cache.get(&key).await.unwrap_or(0.0);
     
     let second_access = start.elapsed();
     println!("   Cache hit:  {:.2}ms -> result: {}", second_access.as_millis(), result);
@@ -86,7 +86,7 @@ async fn test_smart_caching() -> Result<()> {
             first_access.as_micros() as f64 / second_access.as_micros() as f64);
     }
     
-    println!("   Cache stats: {:?}", cache.stats());
+    println!("   Cache stats: {:?}", cache.get_stats());
     
     Ok(())
 }
@@ -195,11 +195,16 @@ async fn test_resource_pooling() -> Result<()> {
     
     // Configure resource pool
     let config = PoolConfig {
-        min_size: 2,
+        initial_size: 2,
         max_size: 8,
-        acquire_timeout: Duration::from_secs(5),
-        idle_timeout: Duration::from_secs(30),
-        health_check_interval: Duration::from_secs(10),
+        min_idle: 1,
+        max_idle_time_seconds: 30,
+        connection_timeout_seconds: 5,
+        validation_interval_seconds: 10,
+        enable_metrics: true,
+        enable_health_checks: true,
+        retry_attempts: 3,
+        retry_delay_ms: 100,
     };
     
     let pool: ResourcePool<MockProcessor, _> = ResourcePool::new(config, MockCreateParams).await?;
@@ -397,7 +402,7 @@ async fn test_memory_optimization() -> Result<()> {
     
     let start = Instant::now();
     let result = processor.process(&compact_graph)?;
-    let processing_time = start.elapsed();
+    let _processing_time = start.elapsed();
     
     println!("   Large graph processing: {:.2}ms", result.processing_time_ms);
     println!("   Throughput: {:.0} nodes/sec", 
@@ -407,13 +412,31 @@ async fn test_memory_optimization() -> Result<()> {
 }
 
 async fn test_scalable_workers() -> Result<()> {
+    use graph_diffusion_edge::scaling::{ScalingConfig, DistributedTaskQueue};
+    
+    // Create distributed task queue
+    let task_queue = Arc::new(DistributedTaskQueue::new(1000));
+    
+    // Create scaling configuration
+    let config = ScalingConfig {
+        min_workers: 2,
+        max_workers: 8,
+        target_cpu_utilization: 0.7,
+        scale_up_threshold: 0.8,
+        scale_down_threshold: 0.3,
+        scale_up_cooldown_seconds: 60,
+        scale_down_cooldown_seconds: 300,
+        queue_size_threshold: 100,
+        enable_auto_scaling: true,
+        enable_adaptive_batching: true,
+        max_batch_size: 32,
+        batch_timeout_ms: 50,
+        worker_idle_timeout_seconds: 300,
+        health_check_interval_seconds: 30,
+    };
+    
     // Create scalable worker pool
-    let worker_pool = ScalableWorkerPool::new(
-        2,  // min workers
-        8,  // max workers 
-        Duration::from_millis(100), // scale up threshold
-        Duration::from_secs(5),     // scale down timeout
-    ).await?;
+    let worker_pool = ScalableWorkerPool::new(config, task_queue);
     
     println!("   Created scalable worker pool (2-8 workers)");
     
