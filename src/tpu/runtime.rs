@@ -68,8 +68,10 @@ impl EdgeTPU {
         info!("Initializing Edge TPU at {}", self.config.device_path);
 
         if !self.check_device_availability()? {
-            return Err(crate::error::Error::TpuRuntime(
-                format!("TPU device not available at {}", self.config.device_path)
+            return Err(crate::error::Error::tpu_runtime(
+                format!("TPU device not available at {}", self.config.device_path),
+                self.config.device_path.clone(),
+                "".to_string()
             ));
         }
 
@@ -113,8 +115,10 @@ impl EdgeTPU {
         let model_path = PathBuf::from(&self.config.model_path);
         
         if !model_path.exists() {
-            return Err(crate::error::Error::TpuRuntime(
-                format!("Model file not found: {}", self.config.model_path)
+            return Err(crate::error::Error::tpu_runtime(
+                format!("Model file not found: {}", self.config.model_path),
+                self.config.device_path.clone(),
+                self.config.model_path.clone()
             ));
         }
 
@@ -128,8 +132,10 @@ impl EdgeTPU {
                     info!("Model loaded successfully on TPU");
                 }
                 Err(e) => {
-                    return Err(crate::error::Error::TpuRuntime(
-                        format!("Failed to load model: {}", e)
+                    return Err(crate::error::Error::tpu_runtime(
+                        format!("Failed to load model: {}", e),
+                        self.config.device_path.clone(),
+                        self.config.model_path.clone()
                     ));
                 }
             }
@@ -142,8 +148,10 @@ impl EdgeTPU {
     #[instrument(skip(self, input_data))]
     pub fn inference(&self, input_data: &[f32]) -> crate::Result<Vec<f32>> {
         if !self.model_loaded {
-            return Err(crate::error::Error::TpuRuntime(
-                "Model not loaded".to_string()
+            return Err(crate::error::Error::tpu_runtime(
+                "Model not loaded".to_string(),
+                self.config.device_path.clone(),
+                self.config.model_path.clone()
             ));
         }
 
@@ -154,8 +162,10 @@ impl EdgeTPU {
             if let Some(ref interpreter) = self.interpreter {
                 let input_tensor = tch::Tensor::from_slice(input_data);
                 let output = interpreter.forward_ts(&[input_tensor])
-                    .map_err(|e| crate::error::Error::TpuRuntime(
-                        format!("Inference failed: {}", e)
+                    .map_err(|e| crate::error::Error::tpu_runtime(
+                        format!("Inference failed: {}", e),
+                        self.config.device_path.clone(),
+                        self.config.model_path.clone()
                     ))?;
                 
                 let result: Vec<f32> = Vec::from(&output[0]);
@@ -190,12 +200,14 @@ impl EdgeTPU {
 
     pub fn batch_inference(&self, batch_data: &[&[f32]]) -> crate::Result<Vec<Vec<f32>>> {
         if batch_data.len() > self.config.batch_size {
-            return Err(crate::error::Error::TpuRuntime(
+            return Err(crate::error::Error::tpu_runtime(
                 format!(
                     "Batch size {} exceeds limit {}",
                     batch_data.len(),
                     self.config.batch_size
-                )
+                ),
+                self.config.device_path.clone(),
+                self.config.model_path.clone()
             ));
         }
 
@@ -273,8 +285,10 @@ impl EdgeTPU {
 
     pub fn set_power_limit(&mut self, watts: f32) -> crate::Result<()> {
         if watts > 6.0 {
-            return Err(crate::error::Error::TpuRuntime(
-                "Power limit cannot exceed 6W for Edge TPU".to_string()
+            return Err(crate::error::Error::tpu_runtime(
+                "Power limit cannot exceed 6W for Edge TPU".to_string(),
+                self.config.device_path.clone(),
+                "".to_string()
             ));
         }
 
