@@ -13,6 +13,8 @@ pub mod scaling;
 pub mod security_scanner;
 pub mod performance_optimizer;
 pub mod resilience;
+pub mod resilience_patterns;
+pub mod distributed_processing;
 
 #[cfg(feature = "tpu")]
 pub mod tpu;
