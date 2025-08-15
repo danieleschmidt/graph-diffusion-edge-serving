@@ -232,13 +232,13 @@ pub struct CircuitBreakerStats {
 
 #[derive(Debug, thiserror::Error)]
 pub enum CircuitBreakerError<E> {
-    #[error(\"Circuit breaker is open\")]
+    #[error("Circuit breaker is open")]
     CircuitOpen,
     
-    #[error(\"Operation timed out\")]
+    #[error("Operation timed out")]
     Timeout,
     
-    #[error(\"Call failed: {0:?}\")]
+    #[error("Call failed: {0:?}")]
     CallFailed(E),
 }
 
@@ -287,7 +287,7 @@ impl AdaptiveRateLimiter {
             
             true
         } else {
-            debug!(\"Rate limit exceeded: {}/{}\", current_count, max_allowed);
+            debug!("Rate limit exceeded: {}/{}", current_count, max_allowed);
             false
         }
     }
@@ -316,7 +316,7 @@ impl AdaptiveRateLimiter {
         
         if new_limit != max_allowed {
             self.max_requests.store(new_limit, Ordering::Relaxed);
-            info!(\"Adaptive rate limit adjusted: {} -> {}\", max_allowed, new_limit);
+            info!("Adaptive rate limit adjusted: {} -> {}", max_allowed, new_limit);
         }
     }
 
@@ -435,13 +435,13 @@ impl BulkheadExecutor {
 
 #[derive(Debug, thiserror::Error)]
 pub enum BulkheadError {
-    #[error(\"Pool '{0}' not found\")]
+    #[error("Pool '{0}' not found")]
     PoolNotFound(String),
     
-    #[error(\"Operation timed out waiting for resource\")]
+    #[error("Operation timed out waiting for resource")]
     Timeout,
     
-    #[error(\"Operation was cancelled\")]
+    #[error("Operation was cancelled")]
     Cancelled,
 }
 
@@ -490,7 +490,7 @@ impl RetryPolicy {
                     
                     if attempt < self.max_attempts {
                         let delay = self.calculate_delay(attempt);
-                        debug!(\"Retry attempt {}/{} failed, waiting {:?}\", attempt, self.max_attempts, delay);
+                        debug!("Retry attempt {}/{} failed, waiting {:?}", attempt, self.max_attempts, delay);
                         sleep(delay).await;
                     }
                 }
@@ -531,7 +531,7 @@ mod tests {
         
         // Simulate failures
         for _ in 0..3 {
-            let result = cb.call(async { Err::<(), &str>(\"test error\") }).await;
+            let result = cb.call(async { Err::<(), &str>("test error") }).await;
             assert!(result.is_err());
         }
         
@@ -570,14 +570,14 @@ mod tests {
             Box::pin(async move {
                 let count = counter.fetch_add(1, Ordering::Relaxed);
                 if count < 2 {
-                    Err(\"fail\")
+                    Err("fail")
                 } else {
-                    Ok(\"success\")
+                    Ok("success")
                 }
             })
         }).await;
         
-        assert_eq!(result, Ok(\"success\"));
+        assert_eq!(result, Ok("success"));
         assert_eq!(counter.load(Ordering::Relaxed), 3);
     }
 }

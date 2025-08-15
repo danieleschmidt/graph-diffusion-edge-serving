@@ -41,6 +41,14 @@ path = "examples/scaling_demo.rs"
 name = "final_demo"
 path = "examples/final_demo.rs"
 
+[[example]]
+name = "autonomous_demo"
+path = "examples/autonomous_demo.rs"
+
+[[example]]
+name = "generation3_demo"
+path = "examples/generation3_demo.rs"
+
 [dependencies]
 # Core async runtime
 tokio = { version = "1.0", features = ["full"] }

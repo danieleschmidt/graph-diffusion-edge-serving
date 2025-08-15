@@ -133,19 +133,25 @@ impl ModelCompiler {
         let input_path = PathBuf::from(&self.config.input_model_path);
         
         if !input_path.exists() {
-            return Err(crate::error::Error::TpuRuntime(
-                format!("Input model not found: {}", self.config.input_model_path)
+            return Err(crate::error::Error::tpu_runtime(
+                format!("Input model not found: {}", self.config.input_model_path),
+                "tpu_compiler",
+                &self.config.input_model_path
             ));
         }
 
         let metadata = std::fs::metadata(&input_path)
-            .map_err(|e| crate::error::Error::TpuRuntime(
-                format!("Failed to read model metadata: {}", e)
+            .map_err(|e| crate::error::Error::tpu_runtime(
+                format!("Failed to read model metadata: {}", e),
+                "tpu_compiler",
+                &self.config.input_model_path
             ))?;
 
         if metadata.len() == 0 {
-            return Err(crate::error::Error::TpuRuntime(
-                "Input model file is empty".to_string()
+            return Err(crate::error::Error::tpu_runtime(
+                "Input model file is empty",
+                "tpu_compiler",
+                &self.config.input_model_path
             ));
         }
 
@@ -300,8 +306,10 @@ impl ModelCompiler {
         // Create output directory if it doesn't exist
         if let Some(parent) = PathBuf::from(&self.config.output_model_path).parent() {
             std::fs::create_dir_all(parent)
-                .map_err(|e| crate::error::Error::TpuRuntime(
-                    format!("Failed to create output directory: {}", e)
+                .map_err(|e| crate::error::Error::tpu_runtime(
+                    format!("Failed to create output directory: {}", e),
+                    "tpu_compiler",
+                    &self.config.output_model_path
                 ))?;
         }
 
@@ -314,8 +322,10 @@ impl ModelCompiler {
         );
 
         std::fs::write(&self.config.output_model_path, &placeholder_content)
-            .map_err(|e| crate::error::Error::TpuRuntime(
-                format!("Failed to write output model: {}", e)
+            .map_err(|e| crate::error::Error::tpu_runtime(
+                format!("Failed to write output model: {}", e),
+                "tpu_compiler",
+                &self.config.output_model_path
             ))?;
 
         let model_size = placeholder_content.len() as u64;

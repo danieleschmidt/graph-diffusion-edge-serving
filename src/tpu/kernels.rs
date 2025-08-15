@@ -287,8 +287,10 @@ impl KernelRegistry {
 
     pub fn execute_kernel(&self, name: &str, config: Option<&KernelConfig>) -> crate::Result<KernelPerformance> {
         let kernel = self.kernels.get(name)
-            .ok_or_else(|| crate::error::Error::TpuRuntime(
-                format!("Kernel '{}' not found", name)
+            .ok_or_else(|| crate::error::Error::tpu_runtime(
+                format!("Kernel '{}' not found", name),
+                "kernel_manager",
+                name
             ))?;
 
         let config = config.unwrap_or(&self.default_config);
@@ -397,10 +399,9 @@ macro_rules! tpu_kernel {
 // Example usage of the macro
 tpu_kernel!(
     custom_graph_aggregation,
-    config,
+    _config,
     {
         // Custom kernel implementation using config parameter
-        let _config = config; // Acknowledge config parameter
         Ok(KernelPerformance {
             operations_per_second: 1e12,
             memory_bandwidth_gbps: 500.0,
