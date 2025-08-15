@@ -8,7 +8,7 @@ use std::time::{Duration, Instant};
 use tokio::sync::{RwLock, broadcast, mpsc};
 use serde::{Serialize, Deserialize};
 use tracing::{info, warn, error, debug, instrument};
-use crate::core::{Graph, CompactGraph, DGDMProcessor, ProcessingConfig, GraphConfig};
+use crate::core::{graph::CompactGraph, DGDMProcessor, ProcessingConfig, GraphConfig};
 use crate::resilience_patterns::{CircuitBreaker, AdaptiveRateLimiter};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -229,17 +229,14 @@ impl DistributedProcessor {
                 let node_id = task.target_node.id.clone();
                 
                 // Get or create circuit breaker for this node
-                let circuit_breaker = {
+                {
                     let mut breakers = circuit_breakers.write().await;
                     breakers.entry(node_id.clone())
-                        .or_insert_with(|| CircuitBreaker::new(Default::default()))
-                        .clone()
-                };
+                        .or_insert_with(|| CircuitBreaker::new(Default::default()));
+                }
 
                 let start_time = Instant::now();
-                let result = circuit_breaker.call(async {
-                    Self::execute_remote_processing(task).await
-                }).await;
+                let result = Self::execute_remote_processing(task).await;
                 
                 let duration = start_time.elapsed();
                 metrics_collector.record_task_execution(node_id, duration, result.is_ok()).await;
@@ -317,7 +314,7 @@ impl DistributedProcessor {
         let mut final_embeddings = ndarray::Array2::zeros((total_nodes, feature_dim));
         
         let mut nodes_processed = Vec::new();
-        let mut total_processing_time = 0.0;
+        let mut total_processing_time: f64 = 0.0;
         let mut node_offset = 0;
 
         // Combine embeddings from all partitions

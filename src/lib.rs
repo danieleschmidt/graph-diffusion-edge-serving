@@ -15,6 +15,14 @@ pub mod performance_optimizer;
 pub mod resilience;
 pub mod resilience_patterns;
 pub mod distributed_processing;
+pub mod quality_gates;
+pub mod progressive_quality;
+pub mod autonomous_executor;
+pub mod adaptive_resilience;
+pub mod enhanced_monitoring;
+pub mod intelligent_error_recovery;
+pub mod intelligent_optimization;
+pub mod global_deployment;
 
 #[cfg(feature = "tpu")]
 pub mod tpu;
@@ -83,6 +91,9 @@ pub mod error {
         
         #[error("Rate limit exceeded: {limit} requests per {window} (current: {current})")]
         RateLimit { limit: u32, window: String, current: u32 },
+        
+        #[error("Prometheus error: {0}")]
+        Prometheus(#[from] prometheus::Error),
     }
 
     // Convenience constructors for common error types
