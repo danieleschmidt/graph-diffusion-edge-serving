@@ -23,6 +23,10 @@ pub mod enhanced_monitoring;
 pub mod intelligent_error_recovery;
 pub mod intelligent_optimization;
 pub mod global_deployment;
+pub mod benchmarking;
+pub mod adaptive_optimization_engine;
+pub mod enhanced_security;
+pub mod enhanced_global_deployment;
 
 #[cfg(feature = "tpu")]
 pub mod tpu;
