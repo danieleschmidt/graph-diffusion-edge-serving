@@ -27,6 +27,8 @@ pub mod benchmarking;
 pub mod adaptive_optimization_engine;
 pub mod enhanced_security;
 pub mod enhanced_global_deployment;
+pub mod research_validation;
+pub mod ai_driven_global_orchestration;
 
 #[cfg(feature = "tpu")]
 pub mod tpu;

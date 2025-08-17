@@ -53,6 +53,14 @@ path = "examples/generation3_demo.rs"
 name = "research_demonstration"
 path = "examples/research_demonstration.rs"
 
+[[example]]
+name = "comprehensive_research_validation"
+path = "examples/comprehensive_research_validation.rs"
+
+[[example]]
+name = "final_autonomous_demonstration"
+path = "examples/final_autonomous_demonstration.rs"
+
 [dependencies]
 # Core async runtime
 tokio = { version = "1.0", features = ["full"] }
