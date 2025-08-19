@@ -4,13 +4,12 @@
 //! and performance optimization with ML-based predictions.
 
 use crate::{
-    core::{CompactGraph, DiffusionResult},
+    core::{graph::CompactGraph, dgdm::DiffusionResult},
     performance_optimizer::PerformanceOptimizer,
     distributed_processing::DistributedProcessor,
     optimization::{
         caching::SmartCache,
         resource_pool::ResourcePool,
-        performance::PerformanceAnalyzer,
     },
     Result, error::Error,
 };
@@ -142,7 +141,10 @@ impl ScalingOrchestrator {
 
         let cache = Arc::new(SmartCache::new(config.cache_size_mb * 1024 * 1024)?);
         let resource_pool = Arc::new(ResourcePool::new(config.resource_pool_size)?);
-        let performance_optimizer = Arc::new(PerformanceOptimizer::new());
+        let performance_optimizer = Arc::new(PerformanceOptimizer::new(
+            crate::performance_optimizer::OptimizationConfig::default(),
+            Arc::new(crate::core::DGDMProcessor::new(crate::core::dgdm::ProcessingConfig::default())?)
+        ));
 
         let load_balancer = Arc::new(LoadBalancer::new(config.load_balancing_strategy.clone()));
 

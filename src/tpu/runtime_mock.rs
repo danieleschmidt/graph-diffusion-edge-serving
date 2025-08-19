@@ -102,8 +102,10 @@ impl EdgeTPU {
     #[instrument(skip(self, input_data))]
     pub fn inference(&self, input_data: &[f32]) -> crate::Result<Vec<f32>> {
         if !self.model_loaded {
-            return Err(crate::error::Error::TpuRuntime(
-                "Mock model not loaded".to_string()
+            return Err(crate::error::Error::tpu_runtime(
+                "Mock model not loaded",
+                &self.config.device_path,
+                &self.config.model_path
             ));
         }
 
@@ -128,12 +130,14 @@ impl EdgeTPU {
 
     pub fn batch_inference(&self, batch_data: &[&[f32]]) -> crate::Result<Vec<Vec<f32>>> {
         if batch_data.len() > self.config.batch_size {
-            return Err(crate::error::Error::TpuRuntime(
+            return Err(crate::error::Error::tpu_runtime(
                 format!(
                     "Batch size {} exceeds limit {}",
                     batch_data.len(),
                     self.config.batch_size
-                )
+                ),
+                &self.config.device_path,
+                &self.config.model_path
             ));
         }
 
@@ -199,8 +203,10 @@ impl EdgeTPU {
 
     pub fn set_power_limit(&mut self, watts: f32) -> crate::Result<()> {
         if watts > 6.0 {
-            return Err(crate::error::Error::TpuRuntime(
-                "Power limit cannot exceed 6W for Edge TPU".to_string()
+            return Err(crate::error::Error::tpu_runtime(
+                "Power limit cannot exceed 6W for Edge TPU",
+                &self.config.device_path,
+                &self.config.model_path
             ));
         }
 

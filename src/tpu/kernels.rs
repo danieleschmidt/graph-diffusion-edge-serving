@@ -399,9 +399,10 @@ macro_rules! tpu_kernel {
 // Example usage of the macro
 tpu_kernel!(
     custom_graph_aggregation,
-    _config,
+    config,
     {
         // Custom kernel implementation using config parameter
+        let _unused = config;
         Ok(KernelPerformance {
             operations_per_second: 1e12,
             memory_bandwidth_gbps: 500.0,
