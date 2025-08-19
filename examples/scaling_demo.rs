@@ -179,7 +179,11 @@ async fn test_parallel_processing() -> Result<()> {
 }
 
 async fn test_performance_optimizer() -> Result<()> {
-    let optimizer = PerformanceOptimizer::new().await?;
+    let processor = Arc::new(DGDMProcessor::new(ProcessingConfig::default())?);
+    let optimizer = PerformanceOptimizer::new(
+        graph_diffusion_edge::performance_optimizer::OptimizationConfig::default(),
+        processor
+    );
     
     // Test performance tuning with different configurations
     let mut test_graph = Graph::new();

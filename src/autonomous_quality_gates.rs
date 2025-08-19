@@ -8,12 +8,13 @@
 //! - Deployment readiness verification
 
 use crate::{
-    core::{CompactGraph, DGDMProcessor, ProcessingConfig},
+    core::{graph::CompactGraph, DGDMProcessor, dgdm::ProcessingConfig},
     security_scanner::SecurityScanner,
     performance_optimizer::PerformanceOptimizer,
     Result, error::Error,
 };
 use std::collections::HashMap;
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::process::Command;
 use serde::{Serialize, Deserialize};
@@ -124,13 +125,18 @@ pub struct AutonomousQualityGates {
 }
 
 impl AutonomousQualityGates {
-    pub fn new(config: QualityGateConfig) -> Self {
-        Self {
+    pub fn new(config: QualityGateConfig) -> Result<Self> {
+        let processor = Arc::new(crate::core::DGDMProcessor::new(crate::core::dgdm::ProcessingConfig::default())?);
+        
+        Ok(Self {
             config,
             security_scanner: SecurityScanner::new(),
-            performance_optimizer: PerformanceOptimizer::new(),
+            performance_optimizer: PerformanceOptimizer::new(
+                crate::performance_optimizer::OptimizationConfig::default(),
+                processor
+            ),
             baseline_metrics: None,
-        }
+        })
     }
 
     /// Execute all quality gates autonomously
@@ -505,7 +511,7 @@ impl AutonomousQualityGates {
         Ok(0)
     }
 
-    fn calculate_security_score(&self, vulnerabilities: &VulnerabilityCount, _scan_results: &crate::security_scanner::ScanResults) -> f64 {
+    fn calculate_security_score(&self, vulnerabilities: &VulnerabilityCount, _scan_results: &()) -> f64 {
         // Simple scoring algorithm
         let base_score = 100.0;
         let penalty = vulnerabilities.critical as f64 * 25.0 + 
