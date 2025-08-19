@@ -4,9 +4,10 @@
 //! adaptive traffic routing, and autonomous scaling decisions.
 
 use crate::{
-    enhanced_global_deployment::{GlobalDeploymentConfig, RegionConfig, DeploymentMetrics},
+    global_deployment::{GlobalDeploymentConfig, DeploymentRegion, RegionDeploymentConfig},
+    enhanced_global_deployment::{EnhancedDeploymentConfig},
     adaptive_optimization_engine::{AdaptiveOptimizationEngine, OptimizationConfig},
-    intelligent_optimization::{IntelligentOptimizer, OptimizationStrategy},
+    intelligent_optimization::IntelligentOptimizer,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -139,7 +140,7 @@ pub struct GlobalState {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RegionState {
-    pub config: RegionConfig,
+    pub config: RegionDeploymentConfig,
     pub current_load: f64,
     pub predicted_load: f64,
     pub resource_utilization: ResourceUtilization,
@@ -308,10 +309,23 @@ impl AIGlobalOrchestrator {
     pub fn new(config: AIGlobalOrchestratorConfig) -> Self {
         let optimization_config = OptimizationConfig {
             learning_rate: config.learning_parameters.learning_rate as f32,
-            adaptation_threshold: config.decision_thresholds.scaling_trigger_confidence as f32,
-            max_iterations: 1000,
-            convergence_threshold: 1e-6,
             exploration_rate: config.learning_parameters.exploration_rate as f32,
+            memory_window: 1000,
+            adaptation_interval: std::time::Duration::from_secs(60),
+            performance_targets: crate::adaptive_optimization_engine::PerformanceTargets {
+                max_convergence_time: std::time::Duration::from_millis(100),
+                min_convergence_quality: 0.95,
+                target_throughput: 1000.0,
+                max_memory_usage: 1024 * 1024 * 1024,
+                energy_efficiency_target: 0.8,
+            },
+            resource_constraints: crate::adaptive_optimization_engine::ResourceConstraints {
+                max_cpu_usage: 0.8,
+                max_memory_mb: 8192,
+                max_gpu_memory_mb: 4096,
+                thermal_limit: 85.0,
+                power_budget_watts: 100.0,
+            },
         };
 
         let initial_state = GlobalState {

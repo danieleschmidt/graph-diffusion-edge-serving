@@ -29,6 +29,11 @@ pub mod enhanced_security;
 pub mod enhanced_global_deployment;
 pub mod research_validation;
 pub mod ai_driven_global_orchestration;
+pub mod resilience_orchestrator;
+pub mod health_monitor;
+pub mod scaling_orchestrator;
+pub mod autonomous_quality_gates;
+pub mod production_deployment_system;
 
 #[cfg(feature = "tpu")]
 pub mod tpu;

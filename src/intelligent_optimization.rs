@@ -11,6 +11,15 @@ use std::time::{Duration, Instant};
 use tokio::sync::RwLock;
 use tracing::{info, warn, error, debug};
 
+/// Simple intelligent optimizer stub for compilation
+pub struct IntelligentOptimizer;
+
+impl IntelligentOptimizer {
+    pub fn new() -> Self {
+        Self
+    }
+}
+
 /// Optimization strategy types
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum OptimizationStrategy {
