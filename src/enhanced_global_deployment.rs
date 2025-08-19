@@ -699,9 +699,13 @@ struct CarbonFootprint {
 }
 
 // Mock ML model implementations
+#[derive(Debug)]
 struct TrafficPredictor;
+#[derive(Debug)]
 struct ResourceOptimizer;
+#[derive(Debug)]
 struct FailurePredictor;
+#[derive(Debug)]
 struct CostPredictor;
 
 impl TrafficPredictor {

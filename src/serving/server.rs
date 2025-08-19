@@ -96,7 +96,7 @@ impl DGDMServer {
     fn create_app(&self) -> Router {
         // Security configuration
         let auth_config = AuthConfig::default();
-        let security_middleware = Arc::new(SecurityMiddleware::new(auth_config));
+        let _security_middleware = Arc::new(SecurityMiddleware::new(auth_config));
         let rate_limiter = Arc::new(RateLimiter::new(100, 60)); // 100 requests per minute
         
         let cors = CorsLayer::new()
