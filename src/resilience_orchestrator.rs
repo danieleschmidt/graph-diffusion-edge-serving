@@ -4,7 +4,7 @@
 //! adaptive rate limiting, error recovery, and self-healing systems.
 
 use crate::{
-    serving::circuit_breaker::CircuitBreaker,
+    serving::circuit_breaker::{CircuitBreaker, CircuitBreakerConfig},
     Result, error::Error,
 };
 use std::future::Future;
@@ -110,8 +110,12 @@ pub struct ResilienceOrchestrator {
 impl ResilienceOrchestrator {
     pub fn new(config: ResilienceConfig) -> Self {
         let circuit_breaker = Arc::new(CircuitBreaker::new(
-            config.circuit_breaker_failure_threshold,
-            config.circuit_breaker_timeout,
+            "resilience_orchestrator",
+            CircuitBreakerConfig {
+                failure_threshold: config.circuit_breaker_failure_threshold,
+                timeout_duration: config.circuit_breaker_timeout,
+                ..Default::default()
+            },
         ));
 
         let rate_limiter = Arc::new(AdaptiveRateLimiter::new(

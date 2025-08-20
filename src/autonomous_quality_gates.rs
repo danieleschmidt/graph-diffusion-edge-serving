@@ -126,7 +126,10 @@ pub struct AutonomousQualityGates {
 
 impl AutonomousQualityGates {
     pub fn new(config: QualityGateConfig) -> Result<Self> {
-        let processor = Arc::new(crate::core::DGDMProcessor::new(crate::core::dgdm::ProcessingConfig::default())?);
+        let processor = Arc::new(crate::core::DGDMProcessor::new(
+            crate::core::graph::GraphConfig::default(),
+            crate::core::dgdm::ProcessingConfig::default()
+        ));
         
         Ok(Self {
             config,

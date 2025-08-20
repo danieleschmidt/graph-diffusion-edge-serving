@@ -17,6 +17,10 @@ crate-type = ["cdylib", "rlib"]
 name = "dgdm-server"
 path = "src/bin/server.rs"
 
+[[bin]]
+name = "minimal-server"
+path = "src/bin/minimal_server.rs"
+
 [[example]]
 name = "basic_demo"
 path = "examples/basic_demo.rs"
@@ -60,6 +64,10 @@ path = "examples/comprehensive_research_validation.rs"
 [[example]]
 name = "final_autonomous_demonstration"
 path = "examples/final_autonomous_demonstration.rs"
+
+[[example]]
+name = "autonomous_sdlc_demo"
+path = "examples/autonomous_sdlc_demo.rs"
 
 [dependencies]
 # Core async runtime

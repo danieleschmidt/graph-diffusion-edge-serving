@@ -527,7 +527,7 @@ mod tests {
             failure_threshold: 3,
             ..Default::default()
         };
-        let cb = CircuitBreaker::new(config);
+        let cb = CircuitBreaker::new("test_circuit", config);
         
         // Simulate failures
         for _ in 0..3 {

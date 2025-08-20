@@ -66,7 +66,7 @@ pub struct SizeParameters {
     pub feature_dimension: usize,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub enum MetricType {
     ConvergenceTime,
     ConvergenceQuality,

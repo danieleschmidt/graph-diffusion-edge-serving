@@ -35,6 +35,9 @@ pub mod scaling_orchestrator;
 pub mod autonomous_quality_gates;
 pub mod production_deployment_system;
 
+// Minimal working implementation for autonomous SDLC demonstration
+pub mod minimal_server;
+
 #[cfg(feature = "tpu")]
 pub mod tpu;
 
