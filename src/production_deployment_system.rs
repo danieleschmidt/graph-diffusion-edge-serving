@@ -147,7 +147,7 @@ pub enum ComplianceRequirement {
     GDPR,
     HIPAA,
     SOX,
-    PCI_DSS,
+    PciDss,
     ISO27001,
     SOC2,
 }

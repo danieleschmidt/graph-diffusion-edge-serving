@@ -9,10 +9,39 @@ use crate::{
     distributed_processing::DistributedProcessor,
     optimization::{
         caching::SmartCache,
-        resource_pool::ResourcePool,
+        resource_pool::{ResourcePool, PoolableResource},
     },
     Result, error::Error,
 };
+
+#[derive(Debug, Clone)]
+pub struct MockResource {
+    id: String,
+    created_at: Instant,
+}
+
+impl PoolableResource for MockResource {
+    type CreateParams = ();
+    
+    async fn create(_params: &Self::CreateParams) -> crate::Result<Self> {
+        Ok(Self {
+            id: uuid::Uuid::new_v4().to_string(),
+            created_at: Instant::now(),
+        })
+    }
+    
+    async fn validate(&self) -> bool {
+        true
+    }
+    
+    async fn reset(&mut self) -> crate::Result<()> {
+        Ok(())
+    }
+    
+    fn resource_type(&self) -> &'static str {
+        "mock_resource"
+    }
+}
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use std::collections::HashMap;
@@ -89,8 +118,8 @@ pub struct ScalingOrchestrator {
     worker_metrics: Arc<RwLock<HashMap<String, WorkerMetrics>>>,
     load_balancer: Arc<LoadBalancer>,
     performance_optimizer: Arc<PerformanceOptimizer>,
-    cache: Arc<SmartCache>,
-    resource_pool: Arc<ResourcePool>,
+    cache: Arc<SmartCache<String>>,
+    resource_pool: Arc<ResourcePool<MockResource, ()>>,
     thread_pool: Arc<rayon::ThreadPool>,
     scaling_semaphore: Arc<Semaphore>,
     prediction_tx: mpsc::UnboundedSender<LoadPrediction>,

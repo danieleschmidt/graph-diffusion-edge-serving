@@ -81,7 +81,7 @@ pub enum ComplianceRequirement {
     PDPA,
     SOC2,
     HIPAA,
-    PCI_DSS,
+    PciDss,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

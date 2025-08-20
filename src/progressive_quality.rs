@@ -484,7 +484,7 @@ impl RobustnessGate {
     async fn analyze_error_handling(&self) -> f64 {
         // Simple heuristic: count error handling patterns in source code
         let patterns = ["Result<", "Error", "?", "unwrap_or", "map_err"];
-        let mut total_score = 0.0;
+        let mut total_score: f32 = 0.0;
         
         for pattern in &patterns {
             match Command::new("grep")

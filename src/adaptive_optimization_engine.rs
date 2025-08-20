@@ -55,8 +55,9 @@ pub struct SystemMetrics {
     pub error_rate: f32,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct PerformanceSnapshot {
+    #[serde(skip)]
     pub timestamp: Instant,
     pub system_metrics: SystemMetrics,
     pub algorithm_config: AdaptiveDiffusionConfig,

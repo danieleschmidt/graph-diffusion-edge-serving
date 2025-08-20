@@ -232,7 +232,7 @@ impl DistributedProcessor {
                 {
                     let mut breakers = circuit_breakers.write().await;
                     breakers.entry(node_id.clone())
-                        .or_insert_with(|| CircuitBreaker::new(Default::default()));
+                        .or_insert_with(|| CircuitBreaker::new(format!("node_{}", node_id), Default::default()));
                 }
 
                 let start_time = Instant::now();
