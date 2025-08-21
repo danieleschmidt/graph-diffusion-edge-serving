@@ -155,7 +155,9 @@ impl EnhancedMonitoringSystem {
         
         // Initialize Prometheus metrics
         let request_counter = Counter::new("dgdm_requests_total", "Total HTTP requests")?;
-        let request_duration = Histogram::new("dgdm_request_duration_seconds", "Request duration")?;
+        let request_duration = Histogram::with_opts(
+            prometheus::HistogramOpts::new("dgdm_request_duration_seconds", "Request duration")
+        )?;
         let active_connections_gauge = Gauge::new("dgdm_active_connections", "Active connections")?;
         let memory_usage_gauge = Gauge::new("dgdm_memory_usage_bytes", "Memory usage in bytes")?;
         let cpu_usage_gauge = Gauge::new("dgdm_cpu_usage_percent", "CPU usage percentage")?;

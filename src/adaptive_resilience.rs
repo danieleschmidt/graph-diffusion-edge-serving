@@ -675,12 +675,13 @@ impl AdaptiveResilienceSystem {
 }
 
 /// Resilience system metrics
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct ResilienceMetrics {
     pub total_failure_events: usize,
     pub recent_failure_rate: f64,
     pub active_circuit_breakers: usize,
     pub open_circuit_breakers: usize,
     pub adaptation_enabled: bool,
+    #[serde(skip)]
     pub last_adaptation: Option<Instant>,
 }
