@@ -223,7 +223,7 @@ where
         Ok(PooledConnection {
             resource: Some(pooled_connection),
             pool: self,
-            _permit: _permit,
+            _permit,
         })
     }
 

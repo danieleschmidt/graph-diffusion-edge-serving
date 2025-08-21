@@ -34,6 +34,7 @@ pub mod health_monitor;
 pub mod scaling_orchestrator;
 pub mod autonomous_quality_gates;
 pub mod production_deployment_system;
+pub mod autonomous_sdlc_executor;
 
 // Minimal working implementation for autonomous SDLC demonstration
 pub mod minimal_server;

@@ -13,6 +13,7 @@ use crate::{
     },
     Result, error::Error,
 };
+use async_trait::async_trait;
 
 #[derive(Debug, Clone)]
 pub struct MockResource {
@@ -20,10 +21,15 @@ pub struct MockResource {
     created_at: Instant,
 }
 
+#[async_trait]
 impl PoolableResource for MockResource {
     type CreateParams = ();
     
-    async fn create(_params: &Self::CreateParams) -> crate::Result<Self> {
+    async fn create(params: &Self::CreateParams) -> crate::Result<Self> 
+    where 
+        Self: Sized 
+    {
+        let _ = params; // Use the parameter to avoid warnings
         Ok(Self {
             id: uuid::Uuid::new_v4().to_string(),
             created_at: Instant::now(),
