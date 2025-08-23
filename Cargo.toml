@@ -73,6 +73,10 @@ path = "examples/autonomous_sdlc_demo.rs"
 name = "autonomous_sdlc_execution_demo"
 path = "examples/autonomous_sdlc_execution_demo.rs"
 
+[[example]]
+name = "generation4_quantum_demo"
+path = "examples/generation4_quantum_demo.rs"
+
 [dependencies]
 # Core async runtime
 tokio = { version = "1.0", features = ["full"] }
