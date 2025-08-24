@@ -77,6 +77,22 @@ path = "examples/autonomous_sdlc_execution_demo.rs"
 name = "generation4_quantum_demo"
 path = "examples/generation4_quantum_demo.rs"
 
+[[example]]
+name = "generation1_enhanced_demo"
+path = "examples/generation1_enhanced_demo.rs"
+
+[[example]]
+name = "generation2_robust_demo"
+path = "examples/generation2_robust_demo.rs"
+
+[[example]]
+name = "generation3_scalable_demo"
+path = "examples/generation3_scalable_demo.rs"
+
+[[example]]
+name = "quality_gates_demo"
+path = "examples/quality_gates_demo.rs"
+
 [dependencies]
 # Core async runtime
 tokio = { version = "1.0", features = ["full"] }
