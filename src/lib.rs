@@ -36,6 +36,14 @@ pub mod autonomous_quality_gates;
 pub mod production_deployment_system;
 pub mod autonomous_sdlc_executor;
 pub mod autonomous_quantum_engine;
+pub mod quantum_graph_transformer;
+pub mod adaptive_neural_architecture_search;
+pub mod robust_error_recovery_system;
+pub mod intelligent_health_monitoring;
+pub mod high_performance_distributed_engine;
+pub mod intelligent_auto_scaling_system;
+pub mod comprehensive_quality_gates;
+pub mod production_deployment_orchestrator;
 pub mod self_modifying_code_generator;
 pub mod evolutionary_system_optimizer;
 
