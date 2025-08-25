@@ -174,11 +174,24 @@ impl ScalingOrchestrator {
                 ))?
         );
 
-        let cache = Arc::new(SmartCache::new(config.cache_size_mb * 1024 * 1024)?);
-        let resource_pool = Arc::new(ResourcePool::new(config.resource_pool_size)?);
+        let cache_config = crate::optimization::caching::CacheConfig {
+            max_memory_mb: config.cache_size_mb,
+            ..Default::default()
+        };
+        let cache = Arc::new(SmartCache::new(cache_config));
+        
+        let pool_config = crate::optimization::resource_pool::PoolConfig {
+            max_size: config.resource_pool_size,
+            ..Default::default()
+        };
+        let resource_pool = Arc::new(ResourcePool::new(pool_config, ()).await?);
+        let graph_config = crate::core::graph::GraphConfig::default();
+        let processing_config = crate::core::dgdm::ProcessingConfig::default();
+        let dgdm_processor = Arc::new(crate::core::DGDMProcessor::new(graph_config, processing_config));
+        
         let performance_optimizer = Arc::new(PerformanceOptimizer::new(
             crate::performance_optimizer::OptimizationConfig::default(),
-            Arc::new(crate::core::DGDMProcessor::new(crate::core::dgdm::ProcessingConfig::default())?)
+            dgdm_processor
         ));
 
         let load_balancer = Arc::new(LoadBalancer::new(config.load_balancing_strategy.clone()));
@@ -214,9 +227,10 @@ impl ScalingOrchestrator {
         let start_time = Instant::now();
 
         // Check cache first
-        if let Some(cached_result) = self.cache.get_graph_result(graph).await? {
+        let cache_key = format!("graph_{}_{}", graph.num_nodes(), graph.num_edges());
+        if let Some(cached_result) = self.cache.get(&cache_key).await {
             debug!("Cache hit for graph processing");
-            return Ok(cached_result);
+            // Parse cached result - for now just proceed with normal processing
         }
 
         // Select optimal worker using load balancing
@@ -231,7 +245,9 @@ impl ScalingOrchestrator {
 
         // Cache successful results
         if result.convergence_score > 0.95 {
-            self.cache.store_graph_result(graph, &result).await?;
+            let cache_key = format!("graph_{}_{}", graph.num_nodes(), graph.num_edges());
+            let cache_value = format!("{}", result.convergence_score);
+            self.cache.put(cache_key, cache_value).await;
         }
 
         // Update performance metrics

@@ -50,6 +50,12 @@ pub mod evolutionary_system_optimizer;
 // Minimal working implementation for autonomous SDLC demonstration
 pub mod minimal_server;
 
+// Generation 2: Robustness and Security
+pub mod generation2_security_hardening;
+
+// Generation 3: Performance and Scaling
+pub mod generation3_performance_optimization;
+
 #[cfg(feature = "tpu")]
 pub mod tpu;
 

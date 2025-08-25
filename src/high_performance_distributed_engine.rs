@@ -160,7 +160,7 @@ struct PerformanceProfiler {
 }
 
 #[derive(Debug, Clone)]
-struct PerformanceMetrics {
+pub struct PerformanceMetrics {
     timestamp: u64,
     throughput_rps: f32,
     average_latency_ms: f32,
