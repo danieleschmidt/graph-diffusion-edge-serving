@@ -354,7 +354,7 @@ impl AdaptiveDiffusionEngine {
             let neighbors = graph.get_neighbors(node_idx);
             let edge_weights = graph.get_edge_weights(node_idx);
             
-            let mut aggregated = Array1::zeros(feature_dim);
+            let mut aggregated = Array1::<f32>::zeros(feature_dim);
             let mut total_weight = 0.0;
 
             for (&neighbor_idx, &edge_weight) in neighbors.iter().zip(edge_weights.iter()) {
@@ -395,7 +395,7 @@ impl AdaptiveDiffusionEngine {
             let end_idx = ((target_idx + 1) as f32 * ratio).ceil() as usize;
             let end_idx = end_idx.min(source_nodes);
             
-            let mut aggregated = Array1::zeros(feature_dim);
+            let mut aggregated = Array1::<f32>::zeros(feature_dim);
             let mut count = 0;
             
             for source_idx in start_idx..end_idx {

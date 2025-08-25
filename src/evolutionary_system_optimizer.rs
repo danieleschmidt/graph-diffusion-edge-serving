@@ -1263,7 +1263,7 @@ impl EvolutionarySystemOptimizer {
 
             let final_score = evaluation_result
                 .as_ref()
-                .map(|r| r.overall_score)
+                .map(|r| r.resource_efficiency)
                 .unwrap_or(performance_prediction.predicted_performance);
 
             // Update best architecture
@@ -1282,7 +1282,7 @@ impl EvolutionarySystemOptimizer {
                 iteration,
                 candidate_id: candidate.architecture_id,
                 predicted_performance: performance_prediction.predicted_performance,
-                actual_performance: evaluation_result.map(|r| r.overall_score),
+                actual_performance: evaluation_result.map(|r| r.resource_efficiency),
                 search_time: std::time::Duration::from_millis(100), // Simplified
             });
 
