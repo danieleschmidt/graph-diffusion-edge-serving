@@ -10,6 +10,7 @@
 use crate::global_deployment::{GlobalDeploymentSystem, DeploymentRegion, RegionStatus, GlobalDeploymentConfig};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::RwLock;
 use tracing::{info, warn, error, debug};
@@ -311,7 +312,7 @@ impl EnhancedGlobalDeployment {
     }
 
     async fn start_ai_traffic_routing(&self) -> crate::Result<()> {
-        let ml_models = self.ml_models.clone();
+        let ml_models = Arc::clone(&self.ml_models);
         let deployment_intelligence = &self.deployment_intelligence;
 
         tokio::spawn(async move {

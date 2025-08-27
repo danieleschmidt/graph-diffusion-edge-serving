@@ -47,6 +47,14 @@ pub mod production_deployment_orchestrator;
 pub mod self_modifying_code_generator;
 pub mod evolutionary_system_optimizer;
 
+// Generation 5: QUANTUM LEAP modules
+pub mod meta_learning_graph_transformer;
+pub mod swarm_intelligence_optimizer;
+pub mod neuromorphic_computing_interface;
+pub mod self_evolving_architecture;
+pub mod quantum_classical_hybrid_processor;
+pub mod realtime_performance_prophecy;
+
 // Minimal working implementation for autonomous SDLC demonstration
 pub mod minimal_server;
 
